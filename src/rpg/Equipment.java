@@ -90,8 +90,26 @@ public abstract class Equipment {
      */
     protected void destroy() throws BrokenEquipmentException {
         if(isBroken()) throw new BrokenEquipmentException(this);
-        getHolder().drop(this);
         this.isBroken = true;
+    }
+
+    /**
+     * Destroys this equipment and drops it from the holder's inventory
+     *
+     * @pre     This item should have an effective holder
+     *          | getHolder() != null
+     * @effect  This piece of equipment is destroyed
+     *          | destroy()
+     * @effect  The holder of this equipment drops this item
+     *          | getHolder.drop(this)
+     * @throws  IllegalArgumentException
+     *          If the holder is not effective
+     *          | getHolder() == null
+     */
+    protected void discard() throws IllegalArgumentException, BrokenEquipmentException, InvalidHolderException {
+        destroy();
+        if(getHolder() == null) throw new IllegalArgumentException("This item does not have a valid holder");
+        getHolder().drop(this);
     }
 
     /*
@@ -132,7 +150,7 @@ public abstract class Equipment {
      */
 
     /**
-     * Variable referencing the weight of the item.
+     * Variable referencing the weight of the item expressed in kg.
      */
     private final double weight;
 
@@ -231,17 +249,13 @@ public abstract class Equipment {
      *          The new EquipmentHolder
      * @post    The holder of this item is set to the given holder
      *          | new.getHolder() == holder
-     * @throws  IllegalArgumentException
+     * @throws  InvalidHolderException
      *          If the given holder is not a valid holder
      *          | !isValidHolder(holder)
-     * @throws BrokenEquipmentException
-     *          This item is broken
-     *          | isBroken()
      */
     @Model
-    protected void setHolder(EquipmentHolder holder) throws InvalidHolderException, BrokenEquipmentException {
+    protected void setHolder(EquipmentHolder holder) throws InvalidHolderException {
         if(!isValidHolder(holder)) throw new InvalidHolderException(holder, this);
-        if(isBroken()) throw new BrokenEquipmentException(this);
 
         this.holder = holder;
     }
@@ -252,14 +266,16 @@ public abstract class Equipment {
      *
      * @param   holder
      *          The given holder
-     * @return  True if and only if the given holder is not effective or alive and can pick up this item.
+     * @return  True if and only if the given holder is not effective or alive and the current holder or
+     *          can pick up this item.
      *          | result ==
-     *          |   (holder == null) ||
-     *          |   (holder.canPickupItem(this))
+     *          |   ( holder == null ) ||
+     *          |   ( holder == getHolder() ) ||
+     *          |   ( holder.canPickupItem(this) )
      */
     public boolean isValidHolder(EquipmentHolder holder) {
         if(isBroken()) return holder == null;
-        return (holder == null) || (holder.canPickup(this));
+        return (holder == null) || holder == getHolder() || holder.canPickup(this);
     }
 
     /*

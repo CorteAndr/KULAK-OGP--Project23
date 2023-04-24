@@ -6,6 +6,8 @@ import be.kuleuven.cs.som.annotate.Raw;
 import rpg.exceptions.BrokenEquipmentException;
 import rpg.exceptions.InvalidHolderException;
 
+import java.util.Random;
+
 /**
  * A class of Weapons
  *
@@ -200,12 +202,12 @@ public class Weapon extends Equipment {
     }
 
     /**
-     * @return  The shininess of this weapon as an integer that is its value
-     *          | result == getValue()
+     * @return  The shininess of this weapon as an integer that is its value added with a random integer between 10 and 50
+     *          | result == getValue() + randomint(10, 50)
      */
     @Override
     public int getShiny() {
-        return getValue();
+        return getValue() + (new Random()).nextInt(10, 50);
     }
 
 }

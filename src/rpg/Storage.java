@@ -2,7 +2,6 @@ package rpg;
 
 import be.kuleuven.cs.som.annotate.Basic;
 import be.kuleuven.cs.som.annotate.Immutable;
-import be.kuleuven.cs.som.annotate.Model;
 import rpg.exceptions.BrokenEquipmentException;
 import rpg.exceptions.InvalidHolderException;
 
@@ -38,48 +37,9 @@ public abstract class Storage extends Equipment {
      *          | else
      *          | new.getCapacity() == getDefaultCapacity()
      */
-    public Storage(long id, double weight, int value, EquipmentHolder holder, double capacity)
+    public Storage(long id, double weight, int value, EquipmentHolder holder)
             throws BrokenEquipmentException, InvalidHolderException {
         super(id, weight, value, holder);
-        if(!isValidCapacity(capacity)) capacity = getDefaultCapacity();
-        this.capacity = capacity;
-    }
-
-    /*
-        Capacity (TOTAL)
-     */
-
-    /**
-     * Variable referencing the maximum capacity of this storage.
-     */
-    private final double capacity;
-
-    /**
-     * Checks if the given capacity is a valid capacity
-     *
-     * @param   capacity
-     *          The capacity to check
-     * @return  True if and only if the given capacity is a positive number
-     *          | result == (capacity >= 0.00)
-     */
-    public static boolean isValidCapacity(double capacity) {
-        return capacity >= 0.00;
-    }
-
-    /**
-     * @return  the capacity of this storage
-     */
-    @Basic @Immutable
-    public double getCapacity() {
-        return capacity;
-    }
-
-    /**
-     * @return  The default capacity of a Storage
-     */
-    @Model
-    private static double getDefaultCapacity() {
-        return 0.00;
     }
 
     /*

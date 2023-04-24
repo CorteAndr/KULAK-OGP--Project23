@@ -7,6 +7,9 @@ public abstract class Entity implements EquipmentHolder {
     /*
         Constructors
      */
+    public Entity(String name, int maxHitpoints) {
+
+    };
 
     /*
         Destructor
@@ -15,7 +18,7 @@ public abstract class Entity implements EquipmentHolder {
     /**
      * Variable referencing the state of this entity. i.e. true means this entity is dead and thus not effective.
      */
-    private boolean isDead;
+    private boolean isDead = false;
 
 
     /*
@@ -34,7 +37,7 @@ public abstract class Entity implements EquipmentHolder {
      * @post    If the given name is valid, the name of this entity is set to the given name
      *          | if (isValidName(name))
      *          | then new.getName() == name
-     * @throws  InvalidNameException
+     * @throws  IllegalArgumentException
      *          If the given name is not valid.
      *          | !isValidName(name)
      */
