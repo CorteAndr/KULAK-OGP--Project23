@@ -3,21 +3,24 @@ package rpg;
 import be.kuleuven.cs.som.annotate.Basic;
 import be.kuleuven.cs.som.annotate.Immutable;
 import be.kuleuven.cs.som.annotate.Model;
-import rpg.exceptions.BrokenEquipmentException;
+import be.kuleuven.cs.som.annotate.Raw;
+import rpg.exceptions.BrokenItemException;
 import rpg.exceptions.InvalidHolderException;
 
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Map;
 
+
 /**
  * A class of Backpacks
  *
  * @author  Corteville Andrew
  *
- * @invar
+ * @invar   Each backpack should have proper contents
+ *          | hasProperContents()
  */
-public class Backpack extends Storage implements EquipmentHolder {
+public class Backpack extends Storage implements ItemHolder {
 
     /**
      * Initializes this new Backpack with a currently available id, the given weight, value, holder and capacity.
@@ -35,8 +38,8 @@ public class Backpack extends Storage implements EquipmentHolder {
      * @post    Initializes the contents of this backpack as an empty Hashmap
      *          | new.getContents() == new HashMap<>()
      */
-     public Backpack(double weight, int value, EquipmentHolder holder, double capacity)
-             throws BrokenEquipmentException, InvalidHolderException {
+     public Backpack(double weight, int value, ItemHolder holder, double capacity)
+             throws BrokenItemException, InvalidHolderException {
 
          super(getNextId(), weight, value, holder);
          if(!isValidCapacity(capacity)) capacity = getDefaultCapacity();
@@ -66,6 +69,11 @@ public class Backpack extends Storage implements EquipmentHolder {
     @Override
     protected long getValidId() {
         return getNextId();
+    }
+
+    @Override
+    public boolean canHaveAsId(long id) {
+        return true;
     }
     /**
      * Returns the currently available id and increments it.
@@ -117,18 +125,143 @@ public class Backpack extends Storage implements EquipmentHolder {
     /*
         Content (DEFENSIVE)
      */
-
     /**
      * Variable referencing the contents of this backpack
+     *
+     * @invar   contents references an effective map
+     *          | contents != null
+     * @invar   Each mapping references a valid list
+     *          | for each key, list in contents:
+     *          | list != null
+     * @invar   Each element in each mapping references a non-broken item
+     *          | for each key, list in contents:
+     *          |   for each item in list:
+     *          |       !item.isBroken()
+     * @invar   Each element in each mapping has the same id as the key of the mapping
+     *          | for each key, list in contents:
+     *          |   for each item in list:
+     *          |       item.getId() == key
+     * @invar   Each element in each mapped list references an item that references back to this backpack
+     *          | for each key, list in contents:
+     *          |   for each item in list:
+     *          |       item.getHolder() == this
+     *
      */
-    private final Map<Long, ArrayList<Equipment>> contents = new HashMap<>();
-
+    private final Map<Long, ArrayList<Item>> contents = new HashMap<>();
 
     /**
-     * @return  The contents of this backpack
+     * @return  A set of identifications that are stored inside this backpack
      */
-    public Map<Long, ArrayList<Equipment>> getContents() {
-        return contents;
+    @Basic
+    public java.util.Set<Long> getStoredIds() {
+        return contents.keySet();
+    }
+
+    /**
+     * Returns how many items within this backpack has the given id.
+     * @param   id
+     *          The id to search
+     * @return  The number of items located inside this backpack with the given id.
+     *          | if (!contents.containsKey(id)) result == 0
+     *          | else return contents.get(id).size()
+     */
+    @Basic
+    public int getNbItemsWithId(long id) {
+        if(!contents.containsKey(id)) return 0;
+        try {
+            return contents.get(id).size();
+        } catch (NullPointerException e) {
+            // Should not happen
+            assert false;
+        }
+        // Should not happen
+        return -1;
+    }
+
+    /**
+     * Returns the list of every item located within this backpack that has the given id.
+     *
+     * @param   id
+     *          The given id
+     * @return  A list of items that are located inside this backpack and have the given id
+     *          | result == contents.get(id)
+     * @throws  IllegalArgumentException
+     *          This backpack does not contain any items with the given id
+     *          | if(getNbItemsWithId(id) == 0)
+     */
+    private java.util.List<Item> getItemsWithId(long id) {
+        if(getNbItemsWithId(id) == 0)
+            throw new IllegalArgumentException("This backpack does not contains any items with the given id");
+        return contents.get(id);
+    }
+
+    /**
+     * Returns the item with the given id at the given position
+     *
+     * @param   id
+     *          The id of the desired item
+     * @param   pos
+     *          The position of the desired item.
+     * @return  The item within this backpack with the given id and at the given position within the items with that id.
+     *          | result == ( contents.get(id).get(pos) )
+     * @throws  IllegalArgumentException
+     *          The given id is not located anywhere inside this backpack
+     *          | getNbItemsWithId(id) == 0
+     * @throws  IndexOutOfBoundsException
+     *          The given position exceeds the number of items with the given id that this backpack holds
+     *          | pos >= getNbItemsWithId(id)
+     */
+    @Basic
+    public Item getItemWithIdAtPos(long id, int pos) throws IllegalArgumentException, IndexOutOfBoundsException {
+        if(getNbItemsWithId(id) == 0)
+            throw new IllegalArgumentException("This backpack does not contains any items with the given id");
+        if(getNbItemsWithId(id) <= pos) throw new IndexOutOfBoundsException("Index out of bounds: "+pos);
+        try {
+            return getItemsWithId(id).get(pos);
+        } catch(NullPointerException | IndexOutOfBoundsException | IllegalArgumentException e) {
+            // Should not happen
+            assert false;
+        }
+        // Should not happen
+        return null;
+    }
+
+    /**
+     * Checks if the given item exists within this backpack
+     *
+     * @return  True if and only if the given item exists within this backpack
+     *          | result == ( !(getNbItemsWithId(item.getId()) == 0) &&
+     *          |( getItemsWithId(item.getId()).contains(item) )
+     */
+    public boolean holdsItem(Item item) {
+        if(getNbItemsWithId(item.getId()) == 0) return false;
+        try {
+            return getItemsWithId(item.getId()).contains(item);
+        } catch (IllegalArgumentException e) {
+            // Should not happen
+            assert false;
+        }
+        return false;
+    }
+
+    /**
+     * Checks if this backpack has proper contents
+     *
+     * @return  True if and only if this backpack can have all of its items at their respective mapping and can hold
+     *          it
+     *          | result ==
+     *          | for each key, mapping in contents:
+     *          |   for each item in mapping:
+     *          |       canPickUp(item) && item.getHolder() == this && item.getId() == key
+     */
+    @Raw
+    public boolean hasProperContents() {
+        for (Map.Entry<Long, ArrayList<Item>> entry: contents.entrySet()) {
+            for(Item item: entry.getValue()) {
+                if (!canPickup(item) || item.getHolder() != this || item.getId() != entry.getKey()) return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -140,8 +273,8 @@ public class Backpack extends Storage implements EquipmentHolder {
     @Override
     public double getLoad() {
         double load = 0.00;
-        for (Map.Entry<Long, ArrayList<Equipment>> entry: getContents().entrySet()) {
-            for (Equipment eq: entry.getValue()) {
+        for (Map.Entry<Long, ArrayList<Item>> entry: contents.entrySet()) {
+            for (Item eq: entry.getValue()) {
                 load += eq.getWeight();
             }
         }
@@ -165,8 +298,8 @@ public class Backpack extends Storage implements EquipmentHolder {
      */
     public int getLoadValue() {
         int value = 0;
-        for (Map.Entry<Long, ArrayList<Equipment>> entry: getContents().entrySet()) {
-            for (Equipment eq: entry.getValue()) {
+        for (Map.Entry<Long, ArrayList<Item>> entry: contents.entrySet()) {
+            for (Item eq: entry.getValue()) {
                 value += eq.getValue();
             }
         }
@@ -197,7 +330,8 @@ public class Backpack extends Storage implements EquipmentHolder {
      *          |   ( 0 <= value ) &&
      *          |   ( value <= getMaxValue() )
      */
-    public static boolean isValidValue(int value) {
+    @Override
+    public boolean canHaveAsValue(int value) {
         return (0 <= value) && (value <= getMaxValue());
     }
 
@@ -209,23 +343,24 @@ public class Backpack extends Storage implements EquipmentHolder {
     }
 
     /*
-        Equipment Holder implementation
+        Item Holder implementation
      */
 
     /**
-     * Checks if the given equipment can be added to this backpack
+     * Checks if the given item can be added to this backpack
      *
-     * @param   equipment
-     *          The equipment to check
-     * @return  True if and only if the given equipment is not broken and this backpack can pick up the weight of the
-     *          given equipment, otherwise return false.
+     * @param   item
+     *          The item to check
+     * @return  True if and only if the given item not broken and either already is inside this backpack or
+     *          this backpack can pick up the weight of the given item, otherwise return false.
      *          | result ==
-     *          | ( !equipment.isBroken() ) &&
-     *          | ( canPickup(equipment.getWeight() )
+     *          | ( !item.isBroken() ) &&
+     *          | ( (containsItem(item) ) ||
+     *          | ( canPickup(item.getWeight() ) )
      */
     @Override
-    public boolean canPickup(Equipment equipment) {
-        return canPickup(equipment.getWeight()) && !equipment.isBroken();
+    public boolean canPickup(Item item) {
+        return !item.isBroken() && (holdsItem(item) || canPickup(item.getWeight()));
     }
 
     /**
@@ -243,56 +378,59 @@ public class Backpack extends Storage implements EquipmentHolder {
     }
 
     /**
-     * Removes the given equipment from its contents and makes the holder of the given equipment not effective.
+     * Removes the given item from its contents and makes the holder of the given item not effective.
      *
-     * @param   equipment
-     *          The equipment to remove
-     * @post    Removes the given equipment from the contents
-     *          | !( new.getContents(equipment.getId()).contains(equipment) )
-     * @effect  The new holder of the given equipment is not effective
+     * @param   item
+     *          The item to remove
+     * @post    Removes the given item from the contents
+     *          | !( new.getContents(item.getId()).contains(item) )
+     * @effect  The new holder of the given item is not effective
      * @throws  IllegalArgumentException
-     *          If the given equipment is not directly located inside the contents of this backpack
-     *          | !( getContents().containsKey(equipment.getId()) ) ||
-     *          | !( getContents().get(equipment.getId()).contains(equipment) )
+     *          If the given item is not directly located inside the contents of this backpack
+     *          | !( getContents().containsKey(item.getId()) ) ||
+     *          | !( getContents().get(item.getId()).contains(item) )
      */
     @Override
-    public void drop(Equipment equipment)
-            throws IllegalArgumentException, BrokenEquipmentException, InvalidHolderException {
+    @Raw
+    public void drop(Item item)
+            throws IllegalArgumentException, InvalidHolderException {
 
-        if( !(getContents().containsKey(equipment.getId())) || !(getContents().get(equipment.getId()).contains(equipment)))
-            throw new IllegalArgumentException("Equipment is not located inside the contents of this backpack");
+        if( !(contents.containsKey(item.getId())) || !(contents.get(item.getId()).contains(item)))
+            throw new IllegalArgumentException("Item is not located inside the contents of this backpack");
 
-        getContents().get(equipment.getId()).remove(equipment);
-        equipment.setHolder(null);
+        contents.get(item.getId()).remove(item);
+        item.setHolder(null);
     }
 
     /**
-     * Picks up an equipment by adding it to its contents and changing the holder of the equipment to this
+     * Picks up an item by adding it to its contents and changing the holder of the item to this
      *
-     * @param   equipment
-     *          The equipment to pick up
-     * @post    The equipment is added to the contents of this backpack
-     *          | new.getContents().get(equipment.getId()).contains(equipment)
-     * @effect  The holder of the given equipment is set to this backpack
-     *          | (new equipment).getHolder() == this
-     * @effect  If the given equipment has an effective holder, then said holder drops this item
-     *          | if (equipment.getHolder() != null)
+     * @param   item
+     *          The item to pick up
+     *
+     * @post    The item is added to the contents of this backpack
+     *          | new.getContents().get(item.getId()).contains(item)
+     * @effect  The holder of the given item is set to this backpack
+     *          | item.setHolder(this)
+     * @effect  If the given item already has an effective holder, then said holder drops this item
+     *          | if (item.getHolder() != null)
      *          | then
-     *          | equipment.getHolder().drop(equipment)
+     *          | item.getHolder().drop(item)
      * @throws  IllegalArgumentException
-     *          The given equipment cannot be picked up
-     *          | !canPickup(equipment)
+     *          The given item cannot be picked up
+     *          | !canPickup(item)
      */
     @Override
-    public void pickup(Equipment equipment)
-            throws IllegalArgumentException, BrokenEquipmentException, InvalidHolderException {
+    @Raw
+    public void pickup(Item item)
+            throws IllegalArgumentException, BrokenItemException, InvalidHolderException {
 
-        if(!canPickup(equipment)) throw new IllegalArgumentException("Cannot pickup this Equipment");
+        if(!canPickup(item)) throw new IllegalArgumentException("Cannot pickup this Item");
 
-        if(equipment.getHolder() != null) equipment.getHolder().drop(equipment);
-        equipment.setHolder(this);
-        if(!getContents().containsKey(equipment.getId())) getContents().put(equipment.getId(), new ArrayList<>());
-        getContents().get(equipment.getId()).add(equipment);
+        if(item.getHolder() != null) item.getHolder().drop(item);
+        item.setHolder(this);
+        if(!contents.containsKey(item.getId())) contents.put(item.getId(), new ArrayList<>());
+        contents.get(item.getId()).add(item);
     }
 
 }

@@ -4,7 +4,7 @@ import be.kuleuven.cs.som.annotate.Basic;
 import be.kuleuven.cs.som.annotate.Immutable;
 import be.kuleuven.cs.som.annotate.Model;
 import be.kuleuven.cs.som.annotate.Raw;
-import rpg.exceptions.BrokenEquipmentException;
+import rpg.exceptions.BrokenItemException;
 import rpg.exceptions.InvalidHolderException;
 
 import java.util.HashMap;
@@ -20,11 +20,11 @@ import java.util.Map;
  * @invar   Each armor has a valid maximum protection
  *          | isValidMaxProtection(getMaxProtection())
  * @invar   Each armor has a valid effective protection
- *          | isValidEffectiveProtection(getEffectiveProtection())
+ *          | canHaveAsEffectiveProtection(getEffectiveProtection())
  * @invar   Each armorType has a valid name
  *          | isValidNameForArmorType(name)
  */
-public class Armor extends Equipment {
+public class Armor extends Item implements Degradable {
 
     /**
      * Initializes this Armor with the given id, weight, value,  holder and maximum protection.
@@ -53,10 +53,11 @@ public class Armor extends Equipment {
      * @effect  The effective protection of this armor is set the maximum protection of this Armor;
      *          | setEffectiveProtection(getMaxProtection())
      */
-    public Armor(long id, double weight, int value, EquipmentHolder holder, int maxProtection)
-            throws BrokenEquipmentException, InvalidHolderException {
+    @Raw
+    public Armor(long id, double weight, int value, ItemHolder holder, int maxProtection)
+            throws BrokenItemException, InvalidHolderException {
 
-        super(id, weight, value, holder);
+        super(isValidNewId(id) ? id: getNextId(), weight, value, holder);
         usedIds.add(getId());
 
         if (!isValidMaxProtection(maxProtection)) maxProtection = getDefaultMaxProtection();
@@ -84,14 +85,27 @@ public class Armor extends Equipment {
     }
 
     /**
-     * Checks if an id is valid for an armor.
+     * Checks if an id is valid new id for an armor.
      *
      * @param   id
      *          The identification to check
      * @return  True if and only if the given id is a prime number
-     *          | result == isPrime(id)
+     *          | result == isPrime(id) && !usedIds.contains(id)
      */
-    public static boolean isValidId(long id) {
+    protected static boolean isValidNewId(long id) {
+        return isPrime(id) && !usedIds.contains(id);
+    }
+
+    /**
+     * Checks if the given id is a valid id for this armor
+     *
+     * @param   id
+     *          The identification number to check.
+     * @return  True if and only if the given id is prime.
+     *          | isPrime(id)
+     */
+    @Override
+    public boolean canHaveAsId(long id) {
         return isPrime(id);
     }
 
@@ -111,12 +125,12 @@ public class Armor extends Equipment {
 
     /**
      * @return  A valid identification number that isn't currently used
-     *          | isValidId(result) && !usedIds.contains(result)
+     *          | isValidNewId(result)
      */
     private static long getNextId() {
-        if(isValidId(2L)) return 2L;
+        if(isValidNewId(2L)) return 2L;
         long currentId = 3;
-        while(!isValidId(currentId) || !usedIds.contains(currentId)) currentId += 2;
+        while(!isValidNewId(currentId)) currentId += 2;
         return currentId;
     }
 
@@ -125,7 +139,9 @@ public class Armor extends Equipment {
      */
 
     /**
+     * The maximum value of this armor can have
      * @return  The maximum value of this armor
+     *          | super.getValue()
      */
     public int getMaxValue() {
         return super.getValue();
@@ -203,10 +219,15 @@ public class Armor extends Equipment {
      * @throws  IllegalArgumentException
      *          The given protection is an invalid protection for this Armor
      *          | !isValidEffectiveProtection(effectiveProtection)
+     * @throws  BrokenItemException(this)
+     *          This armor is broken
+     *          | isBroken()
      */
     @Model
-    private void setEffectiveProtection(int effectiveProtection) throws IllegalArgumentException {
-        if(!isValidEffectiveProtection(effectiveProtection)) throw new IllegalArgumentException("Invalid effective protection");
+    @Raw
+    private void setEffectiveProtection(int effectiveProtection) throws IllegalArgumentException, BrokenItemException {
+        if(isBroken()) throw new BrokenItemException(this);
+        if(!canHaveAsEffectiveProtection(effectiveProtection)) throw new IllegalArgumentException("Invalid effective protection");
         this.effectiveProtection = effectiveProtection;
     }
 
@@ -223,7 +244,8 @@ public class Armor extends Equipment {
      *          | setEffectiveProtection(getEffectiveProtection()-amount)
      */
     @Raw
-    public void degrade(int amount) {
+    public void degrade(int amount) throws BrokenItemException {
+        if(isBroken()) throw new BrokenItemException(this);
         if(amount > 0 && amount <= getEffectiveProtection())
             setEffectiveProtection(getEffectiveProtection()-amount);
     }
@@ -238,10 +260,15 @@ public class Armor extends Equipment {
      * @pre     The given amount should be less than or equal to the difference between
      *          the maximum protection and effective protection
      *          | amount <= getMaxProtection() - getEffectiveProtection()
+     *
      * @effect  Sets the effective protection of this Armor to the old effective protection increased by the given amount
      *          | setEffectiveProtection(getEffectiveProtection() + amount)
+     * @throws  BrokenItemException
+     *          This armor is broken
+     *          | isBroken()
      */
-    public void repair(int amount) {
+    public void repair(int amount) throws BrokenItemException {
+        if(isBroken()) throw new BrokenItemException(this);
         if( (0<=amount) && (amount<=(getMaxProtection()-getEffectiveProtection())))
             setEffectiveProtection(getEffectiveProtection() + amount);
     }
@@ -257,14 +284,16 @@ public class Armor extends Equipment {
      *          |   ( 1 <= effectiveProtection ) &&
      *          |   ( effectiveProtection <= getMaxProtection() )
      */
-    public boolean isValidEffectiveProtection(int effectiveProtection) {
+    @Raw
+    public boolean canHaveAsEffectiveProtection(int effectiveProtection) {
+        if(isBroken()) return effectiveProtection == 0;
         return (1<= effectiveProtection && effectiveProtection <= getMaxProtection());
     }
 
     /**
      * Map of Armor Types with their associated maximum protection
      */
-    private static Map<String, Integer> armorTypes = new HashMap<>();
+    private static final Map<String, Integer> armorTypes = new HashMap<>();
 
     public static Map<String, Integer> getArmorTypes() {
         return armorTypes;

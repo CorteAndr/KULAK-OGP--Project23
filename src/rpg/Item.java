@@ -1,30 +1,30 @@
 package rpg;
 
 import be.kuleuven.cs.som.annotate.*;
-import rpg.exceptions.BrokenEquipmentException;
-import rpg.exceptions.InvalidHolderException;
+import rpg.exceptions.*;
+
 
 /**
- * A class of Equipments
+ * A class of Items
  *
  * @author  Corteville Andrew
  *
- * @invar   Each equipment has a valid id
- *          | isValidId(getId())
- * @invar   Each equipment has a valid weight
+ * @invar   Each item must have a valid id
+ *          | canHaveAsId(getId())
+ * @invar   Each item must have a valid weight
  *          | isValidWeight(getWeight())
- * @invar   Each equipment should have a valid value
- *          | isValidValue(getValue())
- * @invar   Each equipment should have a validHolder
- *          | isValidHolder(getHolder())
+ * @invar   Each item must have a valid value
+ *          | canHaveAsValue(getValue())
+ * @invar   Each item must have a valid holder
+ *          | hasProperHolder()
  */
-public abstract class Equipment {
+public abstract class Item {
     /*
         Constructors
      */
 
     /**
-     * Initializes this new Equipment with an identification number, weight, value and holder
+     * Initializes this new Item with an identification number, weight, value and holder
      *
      * @param   id
      *          The identification number
@@ -33,33 +33,32 @@ public abstract class Equipment {
      * @param   value
      *          The (base)value of the item
      * @param   holder
-     *          The EquipmentHolder that owns this Equipment.
+     *          The ItemHolder that owns this Item.
      * @post    The identification is set to the given identification number or a valid id if the given id was not valid
      *          | new.getId() == id
-     * @post    The weight of the new equipment is set to the given weight or
+     * @post    The weight of the new item is set to the given weight or
      *          a default weight if the given weight was invalid
      *          | if(isValidWeight(weight))
      *          | then
      *          | new.getWeight() == weight
      *          | else
      *          | new.getWeight() == getDefaultWeight();
-     * @effect  The value of this equipment is set to the given value
+     * @effect  The value of this item is set to the given value
      *          | setValue(value)
-     * @effect  The holder of this equipment is set to the given holder
+     * @effect  The holder of this item is set to the given holder
      *          | setHolder(holder)
      */
     @Raw
-    public Equipment(long id, double weight, int value, EquipmentHolder holder)
-            throws IllegalArgumentException, InvalidHolderException, BrokenEquipmentException {
+    public Item(long id, double weight, int value, ItemHolder holder)
+            throws IllegalArgumentException, InvalidHolderException, BrokenItemException {
 
-        if(!isValidId(id)) id = getValidId();
+        if(!canHaveAsId(id)) id = getValidId();
         if(!isValidWeight(weight)) weight = getDefaultWeight();
 
         this.id = id;
         this.weight = weight;
         setValue(value);
         setHolder(holder);
-
     }
 
     /*
@@ -84,29 +83,29 @@ public abstract class Equipment {
      *          | getHolder().dropItem(this)
      * @post    Sets the isBroken attribute of this item to true
      *          | new.IsBroken() == true
-     * @throws BrokenEquipmentException
-     *          Equipment is already broken
+     * @throws BrokenItemException
+     *          Item is already broken
      *          | isBroken()
      */
-    protected void destroy() throws BrokenEquipmentException {
-        if(isBroken()) throw new BrokenEquipmentException(this);
+    protected void destroy() throws BrokenItemException {
+        if(isBroken()) throw new BrokenItemException(this);
         this.isBroken = true;
     }
 
     /**
-     * Destroys this equipment and drops it from the holder's inventory
+     * Destroys this item and drops it from the holder's inventory
      *
      * @pre     This item should have an effective holder
      *          | getHolder() != null
-     * @effect  This piece of equipment is destroyed
+     * @effect  This piece of item is destroyed
      *          | destroy()
-     * @effect  The holder of this equipment drops this item
+     * @effect  The holder of this item drops this item
      *          | getHolder.drop(this)
      * @throws  IllegalArgumentException
      *          If the holder is not effective
      *          | getHolder() == null
      */
-    protected void discard() throws IllegalArgumentException, BrokenEquipmentException, InvalidHolderException {
+    protected void discard() throws IllegalArgumentException, BrokenItemException, InvalidHolderException {
         destroy();
         if(getHolder() == null) throw new IllegalArgumentException("This item does not have a valid holder");
         getHolder().drop(this);
@@ -123,7 +122,9 @@ public abstract class Equipment {
     /**
      * Returns the identification of the item.
      */
-    @Basic @Raw
+    @Basic
+    @Raw
+    @Immutable
     public long getId() {
         return id;
     }
@@ -134,14 +135,14 @@ public abstract class Equipment {
     protected abstract long getValidId();
 
     /**
-     * Checks if the given identification number is valid
+     * Checks if this item can have the given identification number as id
      *
      * @param   id
      *          The identification number to check.
      * @return  True always
      *          | result == true
      */
-    public static boolean isValidId(long id) {
+    public boolean canHaveAsId(long id) {
         return true;
     }
 
@@ -175,11 +176,11 @@ public abstract class Equipment {
      *
      * @param   weight
      *          The weight to check
-     * @return  True if and only if the given weight is a strictly positive number
-     *          | result == (weight > 0.00)
+     * @return  True if and only if the given weight is a positive number
+     *          | result == (weight >= 0.00)
      */
     public static boolean isValidWeight(double weight) {
-        return weight > 0.00;
+        return weight >= 0.00;
     }
 
     /*
@@ -205,11 +206,18 @@ public abstract class Equipment {
      *          The given value
      * @post    The new value of this item is the given value
      *          | new.getValue() == value
+     * @throws BrokenItemException
+     *          This item is broken
+     *          | isBroken()
+     * @throws  IllegalArgumentException
+     *          The given value is not valid for this item
+     *          | !canHaveAsValue(value)
      */
     @Model
-    protected void setValue(int value) throws IllegalArgumentException, BrokenEquipmentException {
-        if (!isValidValue(value)) throw new IllegalArgumentException(value + "is not a valid value");
-        if (isBroken()) throw new BrokenEquipmentException(this);
+    @Raw
+    protected void setValue(int value) throws BrokenItemException, IllegalArgumentException {
+        if (isBroken()) throw new BrokenItemException(this);
+        if (!canHaveAsValue(value)) throw new IllegalArgumentException(value + "is not a valid value");
         this.value = value;
     }
 
@@ -221,7 +229,7 @@ public abstract class Equipment {
      * @return  True if and only if the given value if a positive integer.
      *          | result == (value >= 0)
      */
-    public static boolean isValidValue(int value) {
+    public boolean canHaveAsValue(int value) {
         return value >= 0;
     }
 
@@ -231,51 +239,96 @@ public abstract class Equipment {
     /**
      * Variable referencing the holder of this item;
      */
-    private EquipmentHolder holder = null;
+    private ItemHolder holder = null;
 
 
     /**
      * Returns the holder of this item.
      */
     @Basic
-    public EquipmentHolder getHolder() {
+    public ItemHolder getHolder() {
         return holder;
     }
 
     /**
-     * Sets the holder of this item to the given EquipmentHolder.
+     * Returns the highest holder of this item
+     *
+     * @return  The highest holder of this item, meaning that if the holder of this item is a backpack than return the
+     *          highest holder of said backpack.
+     *          | if(getHolder().getClass() == Backpack.class)
+     *          | then result == ((BackPack) getHolder()).getHighestHolder()
+     *          | else result == getHolder()
+     */
+    public ItemHolder getHighestHolder() {
+        if(getHolder().getClass() == Backpack.class) {
+            return ((Backpack) getHolder()).getHighestHolder();
+        }
+        return getHolder();
+    }
+
+    /**
+     * @return  True if and only if the given item lies on the ground (does not have an effective holder)
+     *          | result == (getHolder() == null)
+     */
+    public boolean liesOnGround() {
+        return getHolder() == null;
+    }
+
+    /**
+     * Sets the holder of this item to the given ItemHolder.
      *
      * @param   holder
-     *          The new EquipmentHolder
+     *          The new ItemHolder
      * @post    The holder of this item is set to the given holder
      *          | new.getHolder() == holder
      * @throws  InvalidHolderException
      *          If the given holder is not a valid holder
-     *          | !isValidHolder(holder)
+     *          | !canHaveAsHolder(holder)
      */
     @Model
-    protected void setHolder(EquipmentHolder holder) throws InvalidHolderException {
-        if(!isValidHolder(holder)) throw new InvalidHolderException(holder, this);
-
+    protected void setHolder(ItemHolder holder) throws InvalidHolderException {
+        if(!canHaveAsHolder(holder)) throw new InvalidHolderException(holder, this);
         this.holder = holder;
     }
 
 
     /**
-     * Checks if the given holder can hold this equipment.
+     * Checks if the given holder can hold this item.
      *
      * @param   holder
      *          The given holder
-     * @return  True if and only if the given holder is not effective or alive and the current holder or
+     *
+     * @return  If this item is broken return true if and only if the given holder is not effective.
+     *          Otherwise, return true if and only if the given holder is not effective, the current holder or
      *          can pick up this item.
-     *          | result ==
-     *          |   ( holder == null ) ||
-     *          |   ( holder == getHolder() ) ||
-     *          |   ( holder.canPickupItem(this) )
+     *          | if (isBroken())
+     *          | then result == ( holder == null )
+     *          | else result == (
+     *          |                   holder == null ||
+     *          |                   holder == getHolder() ||
+     *          |                   holder.canPickup(this)
+     *          |               )
      */
-    public boolean isValidHolder(EquipmentHolder holder) {
-        if(isBroken()) return holder == null;
-        return (holder == null) || holder == getHolder() || holder.canPickup(this);
+    public boolean canHaveAsHolder(ItemHolder holder) {
+        if(isBroken()) {
+            return holder == null;
+        } else {
+            return (holder == null) || holder == getHolder() || holder.canPickup(this);
+        }
+    }
+
+    /**
+     * Checks if this item has a proper holder as its holder
+     * @return True if:
+     *          - The current holder is a valid holder, and
+     *          - This item either lies on the ground or its holder references this item in its contents,
+     *          false otherwise
+     *          | result ==
+     *          | canHaveAsHolder(getHolder()) &&
+     *          | ( liesOnGround() || getHolder().holdsItem(this) )
+     */
+    public boolean hasProperHolder() {
+        return canHaveAsHolder(getHolder()) && (liesOnGround() || getHolder().holdsItem(this));
     }
 
     /*

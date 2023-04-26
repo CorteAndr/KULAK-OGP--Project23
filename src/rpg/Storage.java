@@ -2,7 +2,7 @@ package rpg;
 
 import be.kuleuven.cs.som.annotate.Basic;
 import be.kuleuven.cs.som.annotate.Immutable;
-import rpg.exceptions.BrokenEquipmentException;
+import rpg.exceptions.BrokenItemException;
 import rpg.exceptions.InvalidHolderException;
 
 import java.util.Random;
@@ -14,10 +14,11 @@ import java.util.Random;
  *
  * @invar   The total weight of items located in a storage should not exceed the capacity of the storage.
  */
-public abstract class Storage extends Equipment {
+public abstract class Storage extends Item {
 
     /**
      * Initializes this Storage with the given id, weight, value, holder and capacity
+     *
      * @param   id
      *          The given id
      * @param   weight
@@ -26,8 +27,7 @@ public abstract class Storage extends Equipment {
      *          The given value
      * @param   holder
      *          The given holder
-     * @param   capacity
-     *          The given capacity
+     *
      * @effect  Initializes this Storage with the given id, weight, value and holder.
      *          | super(id, weight, value, holder)
      * @post    The capacity is set to the given capacity if valid, otherwise it is set to a default capacity.
@@ -37,8 +37,8 @@ public abstract class Storage extends Equipment {
      *          | else
      *          | new.getCapacity() == getDefaultCapacity()
      */
-    public Storage(long id, double weight, int value, EquipmentHolder holder)
-            throws BrokenEquipmentException, InvalidHolderException {
+    public Storage(long id, double weight, int value, ItemHolder holder)
+            throws BrokenItemException, InvalidHolderException {
         super(id, weight, value, holder);
     }
 

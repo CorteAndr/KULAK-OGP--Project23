@@ -3,7 +3,7 @@ package rpg;
 import be.kuleuven.cs.som.annotate.Basic;
 import be.kuleuven.cs.som.annotate.Immutable;
 import be.kuleuven.cs.som.annotate.Model;
-import rpg.exceptions.BrokenEquipmentException;
+import rpg.exceptions.BrokenItemException;
 import rpg.exceptions.InvalidHolderException;
 
 /**
@@ -52,8 +52,8 @@ public class Purse extends Storage {
      *          | else
      *          | new.getContents() == getDefaultContents()
      */
-    public Purse(long id, double weight, EquipmentHolder holder, int capacity, int contents)
-            throws BrokenEquipmentException, InvalidHolderException {
+    public Purse(long id, double weight, ItemHolder holder, int capacity, int contents)
+            throws BrokenItemException, InvalidHolderException {
         super(id, weight, contents, holder);
         if(!isValidCapacity(capacity)) capacity = getDefaultCapacity();
         if(!canHaveAsContents(contents)) {
@@ -80,8 +80,8 @@ public class Purse extends Storage {
      *          is set to 0
      *          | this(id, weight, holder, capacity, getDefaultContents())
      */
-    public Purse(long id, double weight, EquipmentHolder holder, int capacity)
-            throws BrokenEquipmentException, InvalidHolderException {
+    public Purse(long id, double weight, ItemHolder holder, int capacity)
+            throws BrokenItemException, InvalidHolderException {
         this(id, weight, holder, capacity, getDefaultContents());
     }
 
@@ -99,17 +99,17 @@ public class Purse extends Storage {
      *          of 0 and contents set to the default contents
      *          | this(generateId(), weight, holder, capacity, getDefaultContents())
      */
-    public Purse(double weight, EquipmentHolder holder, int capacity)
-            throws BrokenEquipmentException, InvalidHolderException {
+    public Purse(double weight, ItemHolder holder, int capacity)
+            throws BrokenItemException, InvalidHolderException {
         this(generateId(), weight, holder, capacity, getDefaultContents());
     }
 
-    public Purse(double weight, EquipmentHolder holder, int capacity, int contents)
-            throws BrokenEquipmentException, InvalidHolderException {
+    public Purse(double weight, ItemHolder holder, int capacity, int contents)
+            throws BrokenItemException, InvalidHolderException {
         this(generateId(), weight, holder, capacity, contents);
     }
 
-    public Purse(double weight, int capacity) throws BrokenEquipmentException, InvalidHolderException {
+    public Purse(double weight, int capacity) throws BrokenItemException, InvalidHolderException {
         this(generateId(), weight, null, capacity, getDefaultContents());
     }
 
@@ -190,13 +190,13 @@ public class Purse extends Storage {
      * @throws  IllegalArgumentException
      *          The given contents are not valid contents for a purse
      *          | !isValidContents(contents)
-     * @throws  BrokenEquipmentException
+     * @throws BrokenItemException
      *          This purse is broken
      *          | isBroken()
      */
     @Model
-    private void setContent(int contents) throws IllegalArgumentException, BrokenEquipmentException {
-        if(isBroken()) throw new BrokenEquipmentException(this);
+    private void setContent(int contents) throws IllegalArgumentException, BrokenItemException {
+        if(isBroken()) throw new BrokenItemException(this);
         if(!canHaveAsContents(contents)) throw new IllegalArgumentException("Invalid contents for a purse");
         this.contents = contents;
         setValue(contents);
@@ -210,7 +210,7 @@ public class Purse extends Storage {
      * @pre     amount should be a strictly positive integer
      *
      */
-    public void addDucats(int amount) throws BrokenEquipmentException {
+    public void addDucats(int amount) throws BrokenItemException {
         if(amount <= 0) throw new IllegalArgumentException("The amount of ducats to add should be strictly positive");
         if(canHaveAsContents(getContents() + amount)) {
             setContent(getContents() + amount);
@@ -233,11 +233,13 @@ public class Purse extends Storage {
      *          If the given amount is not strictly positive or exceeds the current contents of the purse.
      */
     public void removeDucats(int amount)
-            throws IllegalArgumentException, BrokenEquipmentException {
-        if(0 <= amount || getContents() <= amount)
+            throws IllegalArgumentException, BrokenItemException, InvalidHolderException {
+        if(0 <= amount || getContents() < amount)
             throw new IllegalArgumentException("The amount of ducats to remove should be strictly positive and less " +
-                    "than the current contents of this purse");
+                    "than or equal the current contents of this purse");
+        if(getContents() - amount == 0 && getHolder() != null) getHolder().drop(this);
         setContent(getContents() - amount);
+
     }
 
     /**
@@ -253,10 +255,8 @@ public class Purse extends Storage {
      *          | getHolder.drop()
      */
     public void transferAllDucatsTo(Purse other)
-            throws IllegalArgumentException, BrokenEquipmentException, InvalidHolderException {
+            throws IllegalArgumentException, BrokenItemException, InvalidHolderException {
         transferSomeDucatsTo(other, getContents());
-        if(getHolder() != null)
-            getHolder().drop(this);
     }
 
     /**
@@ -271,7 +271,8 @@ public class Purse extends Storage {
      * @effect  Adds the given amount of ducats to the other purse
      *          | other.addDucats(amount)
      */
-    public void transferSomeDucatsTo(Purse other, int amount) throws IllegalArgumentException, BrokenEquipmentException {
+    public void transferSomeDucatsTo(Purse other, int amount)
+            throws IllegalArgumentException, BrokenItemException, InvalidHolderException {
         removeDucats(amount);
         other.addDucats(amount);
     }

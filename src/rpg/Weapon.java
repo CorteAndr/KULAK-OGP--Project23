@@ -3,7 +3,7 @@ package rpg;
 import be.kuleuven.cs.som.annotate.Basic;
 import be.kuleuven.cs.som.annotate.Model;
 import be.kuleuven.cs.som.annotate.Raw;
-import rpg.exceptions.BrokenEquipmentException;
+import rpg.exceptions.BrokenItemException;
 import rpg.exceptions.InvalidHolderException;
 
 import java.util.Random;
@@ -16,7 +16,7 @@ import java.util.Random;
  * @invar   Each weapon has a valid damage attribute
  *          | isValidDamage(getDamage)
  */
-public class Weapon extends Equipment {
+public class Weapon extends Item implements Degradable {
 
     /*
         Constructors
@@ -30,14 +30,15 @@ public class Weapon extends Equipment {
      *          The holder of the new weapon
      * @param   damage
      *          The damage of the new weapon
+     *
      * @effect  Initializes this weapon with a currently available identification, the given weight and holder,
      *          and value set to value evaluated from its damage
      *          | super(getNextId(), weight, getValueFromDamage(damage), holder)
      * @effect    The damage of this weapon is set to the given damage
      *          | setDamage(damage)
      */
-    public Weapon(double weight, EquipmentHolder holder, int damage)
-            throws IllegalArgumentException, InvalidHolderException, BrokenEquipmentException {
+    public Weapon(double weight, ItemHolder holder, int damage)
+            throws IllegalArgumentException, InvalidHolderException, BrokenItemException {
 
         super(getNextId(), weight, getValueFromDamage(damage), holder);
         setDamage(damage);
@@ -84,7 +85,8 @@ public class Weapon extends Equipment {
      * @return  True if and only if the given number is divisible by 3 and even.
      *          | result == (id % 6 == 0)
      */
-    public static boolean isValidId(long id) {
+    @Override
+    public boolean canHaveAsId(long id) {
         return id % 6 == 0;
     }
 
@@ -120,10 +122,17 @@ public class Weapon extends Equipment {
      *          | (1 <= value) &&
      *          | (value <= 200))
      */
-    public static boolean isValidValue(int value) {
-        return ((1 <= value) && (value <= 200));
+    @Override
+    public boolean canHaveAsValue(int value) {
+        return ((1 <= value) && (value <= getMaxValue()));
     }
 
+    /**
+     * @return  The maximum value a weapon can have
+     */
+    public static int getMaxValue() {
+        return 200;
+    }
 
     /*
         Damage (NOMINAL)
@@ -145,16 +154,46 @@ public class Weapon extends Equipment {
      *          | new.getDamage() == damage
      * @effect  The value of this weapon is updated with the value associated with the given damage
      *          | setValue(getValueFromDamage(damage))
-     * @throws BrokenEquipmentException
+     * @throws BrokenItemException
      *          This weapon is broken
      *          | isBroken()
      */
     @Model @Raw
-    private void setDamage(int damage) throws BrokenEquipmentException, IllegalArgumentException {
+    private void setDamage(int damage) throws BrokenItemException, IllegalArgumentException {
         assert isValidDamage(damage): damage + " is an invalid damage";
-        if(isBroken()) throw new BrokenEquipmentException(this);
+        if(isBroken()) throw new BrokenItemException(this);
         setValue(getValueFromDamage(damage));
         this.damage = damage;
+    }
+
+    /**
+     * Degrades the damage of this weapon with the given amount
+     *
+     * @param   amount
+     *          The amount of degradation
+     *
+     * @pre     The given amount should be positive
+     *          | amount > 0
+     * @pre     The given amount should be less than the current damage the weapon has
+     *          | amount < getDamage()
+     *
+     * @effect  The damage of this weapon is set to the old damage decreased with the given amount
+     *          | setDamage(getDamage()-amount)
+     * @throws  BrokenItemException
+     *          This weapon is broken
+     *          | isBroken()
+     */
+    @Override
+    @Raw
+    public void degrade(int amount) throws BrokenItemException {
+        if(isBroken()) throw new BrokenItemException(this);
+        setDamage(getDamage()-amount);
+    }
+
+
+    @Override
+    public void repair(int amount) throws BrokenItemException {
+
     }
 
     /**
