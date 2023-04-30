@@ -4,6 +4,8 @@ import rpg.exceptions.BrokenItemException;
 
 /**
  * An interface for items that can degrade and repair over time
+ *
+ * @author  Corteville Andrew
  */
 public interface Degradable {
 

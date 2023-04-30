@@ -23,6 +23,40 @@ public abstract class Item {
         Constructors
      */
 
+    //TODO documentation
+
+    /**
+     * Initializes this Item with the given id, weight and value.
+     *
+     * @param   id
+     *          The identification for the new item
+     * @param   weight
+     *          The weight of the new item
+     * @param   value
+     *          The value of the new item
+     *
+     * @post    The identification of this new item is set to the given id.
+     *          | new.getId() == id
+     * @post    The weight of this new item is set to the given weight.
+     *          | new.getWeight() == weight
+     * @effect  The value of this new item is set to the given value.
+     *          | new.getValue() == value
+     */
+    protected Item(long id, double weight, int value) throws BrokenItemException {
+        if(!canHaveAsId(id)) id = getValidId();
+        if(!isValidWeight(weight)) weight = getDefaultWeight();
+
+        this.id = id;
+        this.weight = weight;
+        if(!canHaveAsValue(value)) value = getDefaultValue();
+        try {
+            setValue(value);
+        } catch (Exception e) {
+            //Should not happen
+            assert false;
+        }
+    }
+
     /**
      * Initializes this new Item with an identification number, weight, value and holder
      *
@@ -34,15 +68,9 @@ public abstract class Item {
      *          The (base)value of the item
      * @param   holder
      *          The ItemHolder that owns this Item.
-     * @post    The identification is set to the given identification number or a valid id if the given id was not valid
-     *          | new.getId() == id
-     * @post    The weight of the new item is set to the given weight or
-     *          a default weight if the given weight was invalid
-     *          | if(isValidWeight(weight))
-     *          | then
-     *          | new.getWeight() == weight
-     *          | else
-     *          | new.getWeight() == getDefaultWeight();
+     *
+     * @effect  Initializes this item with the given id, weight and value
+     *          | this(id, weight, value)
      * @effect  The value of this item is set to the given value
      *          | setValue(value)
      * @effect  The holder of this item is set to the given holder
@@ -52,12 +80,7 @@ public abstract class Item {
     public Item(long id, double weight, int value, ItemHolder holder)
             throws IllegalArgumentException, InvalidHolderException, BrokenItemException {
 
-        if(!canHaveAsId(id)) id = getValidId();
-        if(!isValidWeight(weight)) weight = getDefaultWeight();
-
-        this.id = id;
-        this.weight = weight;
-        setValue(value);
+        this(id, weight, value);
         setHolder(holder);
     }
 
@@ -105,10 +128,10 @@ public abstract class Item {
      *          If the holder is not effective
      *          | getHolder() == null
      */
-    protected void discard() throws IllegalArgumentException, BrokenItemException, InvalidHolderException {
-        destroy();
+    public void discard() throws IllegalArgumentException, BrokenItemException, InvalidHolderException {
         if(getHolder() == null) throw new IllegalArgumentException("This item does not have a valid holder");
         getHolder().drop(this);
+        destroy();
     }
 
     /*
@@ -231,6 +254,14 @@ public abstract class Item {
      */
     public boolean canHaveAsValue(int value) {
         return value >= 0;
+    }
+
+    /**
+     * Returns a default value for an item if the given item was not valid;
+     *  | canHaveAsValue(result)
+     */
+    protected int getDefaultValue() {
+        return 0;
     }
 
     /*

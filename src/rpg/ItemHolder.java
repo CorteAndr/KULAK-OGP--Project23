@@ -1,10 +1,13 @@
 package rpg;
 
 import rpg.exceptions.BrokenItemException;
+import rpg.exceptions.InvalidAnchorException;
 import rpg.exceptions.InvalidHolderException;
 
 /**
  * Interface for Item Holders
+ *
+ * @author  Corteville Andrew
  */
 public interface ItemHolder {
 
@@ -14,9 +17,12 @@ public interface ItemHolder {
      * @param   item
      *          The item to check
      *
-     * @return  | ? true
+     * @return  The given item can be picked up by the entity
+     *          | ? true
+     * @throws  IllegalArgumentException
+     *          | ? true
      */
-    boolean canPickup(Item item);
+    boolean canPickup(Item item) throws IllegalArgumentException;
 
     /**
      * Checks if the given weight can be picked up
@@ -24,9 +30,10 @@ public interface ItemHolder {
      * @param   weight
      *          The weight to check
      *
-     * @return  | ? true
+     * @return  True if and only if the given weight can be added to the item holder's contents
+     *          | ? true
      */
-    boolean canPickup(double weight);
+    boolean canPickup(double weight) throws IllegalArgumentException;
 
     /**
      * Checks if given item is located in the contents of the holder
@@ -34,9 +41,12 @@ public interface ItemHolder {
      * @param   item
      *          The given item
      *
-     * @return  | ? true
+     * @return  True if and only if the given item is holden by the item holder, otherwise return false
+     *          | ? true
+     * @throws  IllegalArgumentException
+     *          | ? true
      */
-    boolean holdsItem(Item item);
+    boolean holdsItem(Item item) throws IllegalArgumentException;
 
     /**
      * Drops the item on the ground.
@@ -44,8 +54,8 @@ public interface ItemHolder {
      * @param   item
      *          The given item on the ground
      *
-     * @post    The given item is located in the contents of this Item Holder
-     *          | holdsItem(item)
+     * @post    The given item is no longer located in the contents of this Item Holder
+     *          | !holdsItem(item)
      * @post    The given item has as Item Holder this
      *          | (new item).getHolder() == this
      *
@@ -69,5 +79,5 @@ public interface ItemHolder {
      * @throws  InvalidHolderException      [CAN]
      *          | ? true
      */
-    void pickup(Item item) throws IllegalArgumentException, BrokenItemException, InvalidHolderException;
+    void pickup(Item item) throws IllegalArgumentException, BrokenItemException, InvalidHolderException, InvalidAnchorException;
 }

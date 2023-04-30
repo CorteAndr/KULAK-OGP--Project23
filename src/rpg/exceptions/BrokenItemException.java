@@ -2,6 +2,8 @@ package rpg.exceptions;
 
 import rpg.Item;
 
+import java.io.Serial;
+
 /**
  * An exception class that is thrown when a piece of broken item is attempted to be modified.
  *
@@ -11,6 +13,12 @@ import rpg.Item;
  *          | getItem().isBroken()
  */
 public class BrokenItemException extends Exception {
+
+    /**
+     * Required since this class inherits from Exception
+     */
+    @Serial
+    private static final long serialVersionUID = 107L;
 
     /**
      * Initializes this exception with the given broken item.

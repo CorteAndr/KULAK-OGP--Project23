@@ -7,10 +7,7 @@ import be.kuleuven.cs.som.annotate.Raw;
 import rpg.exceptions.BrokenItemException;
 import rpg.exceptions.InvalidHolderException;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
+import java.util.*;
 
 /**
  * A class of Armors
@@ -72,8 +69,17 @@ public class Armor extends Item implements Degradable {
 
     /**
      * Class variable that contains all used identifications
+     *
+     * @invar   usedIds references an effective set
+     *          | usedIds != null
+     * @invar   Each element of usedIds must be effective
+     *          | for each id in usedIds:
+     *          |   id != null
+     * @invar   Each element of usedIds must be a valid id for an Armor
+     *          | for each id in usedIds:
+     *          |   canHaveAsId(id)
      */
-    private static final List<Long> usedIds = new ArrayList<>();
+    private static final Set<Long> usedIds = new HashSet<>();
 
     /**
      * @return  A valid identification number that isn't currently used

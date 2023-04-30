@@ -37,9 +37,13 @@ public abstract class Storage extends Item {
      *          | else
      *          | new.getCapacity() == getDefaultCapacity()
      */
-    public Storage(long id, double weight, int value, ItemHolder holder)
+    protected Storage(long id, double weight, int value, ItemHolder holder)
             throws BrokenItemException, InvalidHolderException {
         super(id, weight, value, holder);
+    }
+    //TODO Documentation
+    protected Storage(long id, double weight, int value) throws BrokenItemException {
+        super(id, weight, value);
     }
 
     /*

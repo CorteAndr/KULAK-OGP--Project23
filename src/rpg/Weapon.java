@@ -187,6 +187,8 @@ public class Weapon extends Item implements Degradable {
     @Raw
     public void degrade(int amount) throws BrokenItemException {
         if(isBroken()) throw new BrokenItemException(this);
+        if(amount > getDamage()) destroy();
+
         setDamage(getDamage()-amount);
     }
 

@@ -5,12 +5,20 @@ import be.kuleuven.cs.som.annotate.Immutable;
 import rpg.Item;
 import rpg.ItemHolder;
 
+import java.io.Serial;
+
 /**
  * An exception class that is thrown when an item is added to an invalid holder
  *
  * @author  Corteville Andrew
  */
 public class InvalidHolderException extends Exception {
+
+    /**
+     * Required since this class inherits from Exception
+     */
+    @Serial
+    private static final long serialVersionUID = 5289524L;
 
     /**
      * Initializes this exception with the given holder and item
