@@ -5,7 +5,7 @@ import rpg.exceptions.*;
 
 
 /**
- * A class of Items
+ * An abstract class of Items
  *
  * @author  Corteville Andrew
  *
@@ -42,7 +42,7 @@ public abstract class Item {
      * @effect  The value of this new item is set to the given value.
      *          | new.getValue() == value
      */
-    protected Item(long id, double weight, int value) throws BrokenItemException {
+    protected Item(long id, double weight, int value) {
         if(!canHaveAsId(id)) id = getValidId();
         if(!isValidWeight(weight)) weight = getDefaultWeight();
 
@@ -78,7 +78,7 @@ public abstract class Item {
      */
     @Raw
     public Item(long id, double weight, int value, ItemHolder holder)
-            throws IllegalArgumentException, InvalidHolderException, BrokenItemException {
+            throws IllegalArgumentException, InvalidHolderException {
 
         this(id, weight, value);
         setHolder(holder);
@@ -229,17 +229,13 @@ public abstract class Item {
      *          The given value
      * @post    The new value of this item is the given value
      *          | new.getValue() == value
-     * @throws BrokenItemException
-     *          This item is broken
-     *          | isBroken()
      * @throws  IllegalArgumentException
      *          The given value is not valid for this item
      *          | !canHaveAsValue(value)
      */
     @Model
     @Raw
-    protected void setValue(int value) throws BrokenItemException, IllegalArgumentException {
-        if (isBroken()) throw new BrokenItemException(this);
+    protected void setValue(int value) throws IllegalArgumentException {
         if (!canHaveAsValue(value)) throw new IllegalArgumentException(value + "is not a valid value");
         this.value = value;
     }
@@ -286,13 +282,17 @@ public abstract class Item {
      *
      * @return  The highest holder of this item, meaning that if the holder of this item is a backpack than return the
      *          highest holder of said backpack.
-     *          | if(getHolder().getClass() == Backpack.class)
+     *          | if(getHolder() != null && getHolder() is instance of Backpack)
      *          | then result == ((BackPack) getHolder()).getHighestHolder()
      *          | else result == getHolder()
      */
     public ItemHolder getHighestHolder() {
-        if(getHolder().getClass() == Backpack.class) {
-            return ((Backpack) getHolder()).getHighestHolder();
+        if(getHolder() != null && getHolder().getClass() == Backpack.class) {
+            if (((Backpack) getHolder()).getHolder() == null) {
+                return getHolder();
+            } else {
+                return ((Backpack) getHolder()).getHighestHolder();
+            }
         }
         return getHolder();
     }
@@ -317,7 +317,7 @@ public abstract class Item {
      *          | !canHaveAsHolder(holder)
      */
     @Model
-    protected void setHolder(ItemHolder holder) throws InvalidHolderException {
+    protected void setHolder(@Raw ItemHolder holder) throws InvalidHolderException {
         if(!canHaveAsHolder(holder)) throw new InvalidHolderException(holder, this);
         this.holder = holder;
     }
@@ -359,7 +359,7 @@ public abstract class Item {
      *          | ( liesOnGround() || getHolder().holdsItem(this) )
      */
     public boolean hasProperHolder() {
-        return canHaveAsHolder(getHolder()) && (liesOnGround() || getHolder().holdsItem(this));
+        return canHaveAsHolder(getHolder()) && (liesOnGround() || getHolder().holdsItemDirectly(this));
     }
 
     /*

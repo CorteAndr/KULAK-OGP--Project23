@@ -36,6 +36,7 @@ public class Armor extends Item implements Degradable {
      *          The given holder
      * @param   maxProtection
      *          The given maximum protection
+     *
      * @effect  This armor is initialized with the given id, weight, value and holder.
      *          | super(id, weight, value, holder)
      * @post    The identification of this Armor is added to the used ids
@@ -52,7 +53,7 @@ public class Armor extends Item implements Degradable {
      */
     @Raw
     public Armor(long id, double weight, int value, ItemHolder holder, int maxProtection)
-            throws BrokenItemException, InvalidHolderException {
+            throws InvalidHolderException {
 
         super(isValidNewId(id) ? id: getNextId(), weight, value, holder);
         usedIds.add(getId());
@@ -60,7 +61,6 @@ public class Armor extends Item implements Degradable {
         if (!isValidMaxProtection(maxProtection)) maxProtection = getDefaultMaxProtection();
         this.maxProtection = maxProtection;
         setEffectiveProtection(getMaxProtection());
-
     }
 
     /*
@@ -225,14 +225,10 @@ public class Armor extends Item implements Degradable {
      * @throws  IllegalArgumentException
      *          The given protection is an invalid protection for this Armor
      *          | !isValidEffectiveProtection(effectiveProtection)
-     * @throws  BrokenItemException(this)
-     *          This armor is broken
-     *          | isBroken()
      */
     @Model
     @Raw
-    private void setEffectiveProtection(int effectiveProtection) throws IllegalArgumentException, BrokenItemException {
-        if(isBroken()) throw new BrokenItemException(this);
+    private void setEffectiveProtection(int effectiveProtection) throws IllegalArgumentException {
         if(!canHaveAsEffectiveProtection(effectiveProtection)) throw new IllegalArgumentException("Invalid effective protection");
         this.effectiveProtection = effectiveProtection;
     }
@@ -242,12 +238,17 @@ public class Armor extends Item implements Degradable {
      *
      * @param   amount
      *          The given amount
+     *
      * @pre     Amount should be a strictly positive integer
      *          | 0 < amount
      * @pre     Amount should be less than the effectiveProtection of this Armor
      *          | amount <= getEffectiveProtection()
+     *
      * @effect  Sets the effectiveProtection of this Armor the old effective protection reduced by the given amount
      *          | setEffectiveProtection(getEffectiveProtection()-amount)
+     * @throws  BrokenItemException
+     *          This armor is broken
+     *          | isBroken()
      */
     @Raw
     public void degrade(int amount) throws BrokenItemException {

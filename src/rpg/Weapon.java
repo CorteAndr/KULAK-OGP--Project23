@@ -38,7 +38,7 @@ public class Weapon extends Item implements Degradable {
      *          | setDamage(damage)
      */
     public Weapon(double weight, ItemHolder holder, int damage)
-            throws IllegalArgumentException, InvalidHolderException, BrokenItemException {
+            throws IllegalArgumentException, InvalidHolderException {
 
         super(getNextId(), weight, getValueFromDamage(damage), holder);
         setDamage(damage);
@@ -144,24 +144,22 @@ public class Weapon extends Item implements Degradable {
     private int damage;
 
     /**
-     *   Sets this weapon's damage to the given damage
+     * Sets this weapon's damage to the given damage
      *
      * @param   damage
      *          The given damage
+     *
      * @pre     The given damage for this weapon should be valid
      *          | isValidDamage(damage)
+     *
      * @post    Sets the damage of this weapon to the given damage
      *          | new.getDamage() == damage
      * @effect  The value of this weapon is updated with the value associated with the given damage
      *          | setValue(getValueFromDamage(damage))
-     * @throws BrokenItemException
-     *          This weapon is broken
-     *          | isBroken()
      */
     @Model @Raw
-    private void setDamage(int damage) throws BrokenItemException, IllegalArgumentException {
-        assert isValidDamage(damage): damage + " is an invalid damage";
-        if(isBroken()) throw new BrokenItemException(this);
+    private void setDamage(int damage) throws  IllegalArgumentException {
+        assert isValidDamage(damage): damage + " is an invalid damage"; // Dynamic Verification
         setValue(getValueFromDamage(damage));
         this.damage = damage;
     }
@@ -192,10 +190,25 @@ public class Weapon extends Item implements Degradable {
         setDamage(getDamage()-amount);
     }
 
-
+    /**
+     * Repairs this weapon with the given amount
+     *
+     * @param   amount
+     *          The amount that should be repaired
+     *
+     * @pre     The given amount should be a positive integer
+     *          | amount > 0
+     *
+     * @effect  Sets the damage to the old damage increased with the given amount
+     *          | setDamage(getDamage() + amount)
+     * @throws  BrokenItemException
+     *          This weapon is broken
+     *          | isBroken()
+     */
     @Override
     public void repair(int amount) throws BrokenItemException {
-
+        if(isBroken()) throw new BrokenItemException(this);
+        setDamage(getDamage() + amount);
     }
 
     /**

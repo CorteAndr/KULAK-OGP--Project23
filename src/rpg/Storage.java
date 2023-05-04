@@ -2,13 +2,14 @@ package rpg;
 
 import be.kuleuven.cs.som.annotate.Basic;
 import be.kuleuven.cs.som.annotate.Immutable;
+import be.kuleuven.cs.som.annotate.Raw;
 import rpg.exceptions.BrokenItemException;
 import rpg.exceptions.InvalidHolderException;
 
 import java.util.Random;
 
 /**
- * A class of Storages
+ * An abstract class of Storages
  *
  * @author  Corteville Andrew
  *
@@ -30,19 +31,28 @@ public abstract class Storage extends Item {
      *
      * @effect  Initializes this Storage with the given id, weight, value and holder.
      *          | super(id, weight, value, holder)
-     * @post    The capacity is set to the given capacity if valid, otherwise it is set to a default capacity.
-     *          | if(isValidCapacity(capacity))
-     *          | then
-     *          | new.getCapacity() == capacity
-     *          | else
-     *          | new.getCapacity() == getDefaultCapacity()
      */
+    @Raw
     protected Storage(long id, double weight, int value, ItemHolder holder)
-            throws BrokenItemException, InvalidHolderException {
+            throws InvalidHolderException {
         super(id, weight, value, holder);
     }
-    //TODO Documentation
-    protected Storage(long id, double weight, int value) throws BrokenItemException {
+
+    /**
+     * Initializes this storage with the given id, weight and value
+     *
+     * @param   id
+     *          The identification of the new storage
+     * @param   weight
+     *          The weight of the new storage
+     * @param   value
+     *          The value of the new storage
+     *
+     * @effect  Initializes this storage with the given identification, weight and value
+     *          | super(id, weight, value)
+     */
+    @Raw
+    protected Storage(long id, double weight, int value) {
         super(id, weight, value);
     }
 

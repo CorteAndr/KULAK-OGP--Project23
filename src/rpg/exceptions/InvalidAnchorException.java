@@ -1,6 +1,7 @@
 package rpg.exceptions;
 
 import be.kuleuven.cs.som.annotate.Raw;
+import rpg.Anchor;
 import rpg.Entity;
 import rpg.Item;
 
@@ -35,7 +36,7 @@ public class InvalidAnchorException extends Exception {
      *          | new.getAnchorName() == anchorName
      */
     @Raw
-    public InvalidAnchorException(Entity entity, Item item, String anchorName) {
+    public InvalidAnchorException(Entity entity, Item item, Anchor anchorName) {
         this.entity = entity;
         this.item = item;
         this.anchorName = anchorName;
@@ -54,7 +55,7 @@ public class InvalidAnchorException extends Exception {
     /**
      * Variable referencing the name of the anchor to which the item was attempted to add.
      */
-    private final String anchorName;
+    private final Anchor anchorName;
 
     /**
      * Returns the entity referenced by this exception.
@@ -73,7 +74,7 @@ public class InvalidAnchorException extends Exception {
     /**
      * Returns the name of the anchor from the exception.
      */
-    public String getAnchorName() {
+    public Anchor getAnchorName() {
         return anchorName;
     }
 }

@@ -1,6 +1,7 @@
 package rpg;
 
 import rpg.exceptions.BrokenItemException;
+import rpg.exceptions.DeadEntityException;
 import rpg.exceptions.InvalidAnchorException;
 import rpg.exceptions.InvalidHolderException;
 
@@ -46,7 +47,22 @@ public interface ItemHolder {
      * @throws  IllegalArgumentException
      *          | ? true
      */
-    boolean holdsItem(Item item) throws IllegalArgumentException;
+    boolean holdsItemDirectly(Item item) throws IllegalArgumentException;
+
+    /**
+     * Checks if the given item is directly or indirectly held by the holder
+     */
+    boolean holdsItem(Item item);
+
+    /**
+     * Returns the number of items held both directly and indirectly of the given type
+     *
+     * @param   type
+     *          The type of item to find
+     * @return  The number of items held (directly or indirectly) of the given type.
+     *          | ?
+     */
+    int getNbOfItemsOfTypeHeld(Class<? extends Item> type);
 
     /**
      * Drops the item on the ground.
@@ -61,10 +77,8 @@ public interface ItemHolder {
      *
      * @throws  IllegalArgumentException    [CAN]
      *          | ? true
-     * @throws  InvalidHolderException      [CAN]
-     *          | ? true
      */
-    void drop(Item item) throws IllegalArgumentException, InvalidHolderException;
+    void drop(Item item) throws IllegalArgumentException;
 
     /**
      * Picks up the given item
@@ -78,6 +92,11 @@ public interface ItemHolder {
      *          | ? true
      * @throws  InvalidHolderException      [CAN]
      *          | ? true
+     * @throws  InvalidAnchorException      [CAN]
+     *          | ? true
+     * @throws  DeadEntityException         [CAN]
+     *          | ? true
      */
-    void pickup(Item item) throws IllegalArgumentException, BrokenItemException, InvalidHolderException, InvalidAnchorException;
+    void pickup(Item item) throws IllegalArgumentException, BrokenItemException,
+            InvalidHolderException, InvalidAnchorException, DeadEntityException;
 }
