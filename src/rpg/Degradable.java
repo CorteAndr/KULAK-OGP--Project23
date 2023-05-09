@@ -3,7 +3,7 @@ package rpg;
 import rpg.exceptions.BrokenItemException;
 
 /**
- * An interface for items that can degrade and repair over time
+ * An interface for items that can degrade over and be repaired
  *
  * @author  Corteville Andrew
  */
@@ -19,6 +19,7 @@ public interface Degradable {
 
     /**
      * Repairs the object with the given amount
+     *
      * @param   amount
      *          The amount that should be repaired
      */

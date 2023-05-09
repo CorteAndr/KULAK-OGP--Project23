@@ -4,6 +4,7 @@ import be.kuleuven.cs.som.annotate.Basic;
 import be.kuleuven.cs.som.annotate.Model;
 import be.kuleuven.cs.som.annotate.Raw;
 import rpg.exceptions.BrokenItemException;
+import rpg.exceptions.InvalidAnchorException;
 import rpg.exceptions.InvalidHolderException;
 
 import java.util.Random;
@@ -31,16 +32,37 @@ public class Weapon extends Item implements Degradable {
      * @param   damage
      *          The damage of the new weapon
      *
-     * @effect  Initializes this weapon with a currently available identification, the given weight and holder,
-     *          and value set to value evaluated from its damage
-     *          | super(getNextId(), weight, getValueFromDamage(damage), holder)
-     * @effect    The damage of this weapon is set to the given damage
-     *          | setDamage(damage)
+     * @effect  Initializes this weapon with a currently available identification, the given weight
+     *          , value set to value evaluated from its damage and the given damage
+     *          | this(weight, damage)
+     * @effect  The given holder picks up this weapon
+     *          | holder.pickup(this)
      */
     public Weapon(double weight, ItemHolder holder, int damage)
-            throws IllegalArgumentException, InvalidHolderException {
+            throws IllegalArgumentException, InvalidHolderException, InvalidAnchorException {
+        this(weight, damage);
+        if(!canHaveAsHolder(holder)) throw new InvalidHolderException(holder, this);
+        if(holder != null && !holder.canPickup(this)) throw new InvalidHolderException(holder, this);
+        try {
+            if(holder != null) holder.pickup(this);
+        } catch (Exception e) {
+            assert false;
+        }
+    }
 
-        super(getNextId(), weight, getValueFromDamage(damage), holder);
+    /**
+     * Initializes this weapon with the given weight and damage and a generated identification and calculated value
+     *
+     * @param   weight
+     *          The weight for the new weapon
+     * @param   damage
+     *          The damage for the new weapon
+     *
+     * @effect  Initializes this weapon with the given weight and damage, generated identification and value gained from
+     *          value
+     */
+    public Weapon(double weight, int damage) {
+        super(getNextId(), weight, getValueFromDamage(damage));
         setDamage(damage);
     }
 
@@ -172,11 +194,14 @@ public class Weapon extends Item implements Degradable {
      *
      * @pre     The given amount should be positive
      *          | amount > 0
-     * @pre     The given amount should be less than the current damage the weapon has
-     *          | amount < getDamage()
      *
-     * @effect  The damage of this weapon is set to the old damage decreased with the given amount
-     *          | setDamage(getDamage()-amount)
+     * @effect  If the given amount is not lesser than the current damage then this weapon is discarded
+     *          | if (amount >= getDamage())
+     *          | then this.discard()
+     * @effect  If the given amount is lesser than the current damage then the damage of this weapon
+     *          is set to the old damage decreased with the given amount
+     *          | if (amount < getDamage()
+     *          | then setDamage(getDamage()-amount)
      * @throws  BrokenItemException
      *          This weapon is broken
      *          | isBroken()
@@ -185,9 +210,11 @@ public class Weapon extends Item implements Degradable {
     @Raw
     public void degrade(int amount) throws BrokenItemException {
         if(isBroken()) throw new BrokenItemException(this);
-        if(amount > getDamage()) destroy();
-
-        setDamage(getDamage()-amount);
+        if(amount >= getDamage()) {
+            discard();
+        } else {
+            setDamage(getDamage() - amount);
+        }
     }
 
     /**
@@ -257,11 +284,16 @@ public class Weapon extends Item implements Degradable {
 
     /**
      * @return  The shininess of this weapon as an integer that is its value added with a random integer between 10 and 50
-     *          | result == getValue() + randomint(10, 50)
+     *          | result == getValue() + randomint(10...50)
      */
     @Override
     public int getShiny() {
         return getValue() + (new Random()).nextInt(10, 50);
     }
 
+
+    @Override
+    public String toString () {
+        return super.toString() + String.format(", damage: %d", getDamage());
+    }
 }

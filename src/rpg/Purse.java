@@ -4,6 +4,7 @@ import be.kuleuven.cs.som.annotate.Basic;
 import be.kuleuven.cs.som.annotate.Immutable;
 import be.kuleuven.cs.som.annotate.Model;
 import rpg.exceptions.BrokenItemException;
+import rpg.exceptions.InvalidAnchorException;
 import rpg.exceptions.InvalidHolderException;
 
 /**
@@ -15,6 +16,8 @@ import rpg.exceptions.InvalidHolderException;
  *          | isValidCapacity(getCapacity())
  * @invar   Each purse has valid contents
  *          | isValidContents(getContents())
+ *
+ * @note    Not a requirement but implemented and unfinished
  */
 public class Purse extends Storage {
 
@@ -53,7 +56,7 @@ public class Purse extends Storage {
      *          | new.getContents() == getDefaultContents()
      */
     public Purse(long id, double weight, ItemHolder holder, int capacity, int contents)
-            throws BrokenItemException, InvalidHolderException {
+            throws BrokenItemException, InvalidHolderException, InvalidAnchorException {
         super(id, weight, contents, holder);
         if(!isValidCapacity(capacity)) capacity = getDefaultCapacity();
         if(!canHaveAsContents(contents)) {
@@ -81,7 +84,7 @@ public class Purse extends Storage {
      *          | this(id, weight, holder, capacity, getDefaultContents())
      */
     public Purse(long id, double weight, ItemHolder holder, int capacity)
-            throws BrokenItemException, InvalidHolderException {
+            throws BrokenItemException, InvalidHolderException, InvalidAnchorException {
         this(id, weight, holder, capacity, getDefaultContents());
     }
 
@@ -100,17 +103,19 @@ public class Purse extends Storage {
      *          | this(generateId(), weight, holder, capacity, getDefaultContents())
      */
     public Purse(double weight, ItemHolder holder, int capacity)
-            throws BrokenItemException, InvalidHolderException {
+            throws BrokenItemException, InvalidHolderException, InvalidAnchorException {
         this(generateId(), weight, holder, capacity, getDefaultContents());
     }
 
     public Purse(double weight, ItemHolder holder, int capacity, int contents)
-            throws BrokenItemException, InvalidHolderException {
+            throws BrokenItemException, InvalidHolderException, InvalidAnchorException {
         this(generateId(), weight, holder, capacity, contents);
     }
 
-    public Purse(double weight, int capacity) throws BrokenItemException, InvalidHolderException {
-        this(generateId(), weight, null, capacity, getDefaultContents());
+    public Purse(double weight, int capacity) throws BrokenItemException, InvalidHolderException, InvalidAnchorException {
+        super(generateId(), weight);
+        this.capacity = capacity;
+        setContent(getDefaultContents());
     }
 
 
@@ -309,6 +314,22 @@ public class Purse extends Storage {
     }
 
     /**
+     * Checks if the given holder can be a holder
+     * @param   holder
+     *          The holder to check
+     *
+     * @return  True if and only if this purse lies on the ground or this holder or the holder can pick up this purse
+     *          | result == (
+     *          |   liesOnGround() ||
+     *          |   getHolder() == holder ||
+     *          |   holder.canPickup(this)
+     *          | )
+     */
+    @Override
+    public boolean canHaveAsHolder(ItemHolder holder) {
+        return holder == null || (getHolder() == holder || holder.canPickup(this));
+    }
+    /**
      * @return  The weight of a singular ducat expressed in kg.
      */
     @Basic @Immutable
@@ -316,4 +337,13 @@ public class Purse extends Storage {
         return 0.050;
     }
 
+    /**
+     * Destroys this item without discarding it
+     *
+     * @effect  Destroys this item
+     *          | super.destroy()
+     */
+    public void destroy() throws BrokenItemException {
+        super.destroy();
+    }
 }

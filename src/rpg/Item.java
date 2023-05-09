@@ -22,9 +22,6 @@ public abstract class Item {
     /*
         Constructors
      */
-
-    //TODO documentation
-
     /**
      * Initializes this Item with the given id, weight and value.
      *
@@ -75,13 +72,20 @@ public abstract class Item {
      *          | setValue(value)
      * @effect  The holder of this item is set to the given holder
      *          | setHolder(holder)
+     * @throws  InvalidHolderException
      */
     @Raw
     public Item(long id, double weight, int value, ItemHolder holder)
-            throws IllegalArgumentException, InvalidHolderException {
+            throws IllegalArgumentException, InvalidAnchorException, InvalidHolderException {
 
         this(id, weight, value);
-        setHolder(holder);
+        if(!this.canHaveAsHolder(holder)) throw new InvalidHolderException(holder, this);
+        try {
+            holder.pickup(this);
+        } catch (Exception e) {
+            // Not sure yet
+            assert false;
+        }
     }
 
     /*
@@ -118,19 +122,14 @@ public abstract class Item {
     /**
      * Destroys this item and drops it from the holder's inventory
      *
-     * @pre     This item should have an effective holder
-     *          | getHolder() != null
      * @effect  This piece of item is destroyed
      *          | destroy()
-     * @effect  The holder of this item drops this item
-     *          | getHolder.drop(this)
-     * @throws  IllegalArgumentException
-     *          If the holder is not effective
-     *          | getHolder() == null
+     * @effect  If the holder of this item is effective then said holder drops this item
+     *          | if(getHolder() != null)
+     *          | then getHolder.drop(this)
      */
-    public void discard() throws IllegalArgumentException, BrokenItemException, InvalidHolderException {
-        if(getHolder() == null) throw new IllegalArgumentException("This item does not have a valid holder");
-        getHolder().drop(this);
+    public void discard() throws BrokenItemException {
+        if(getHolder() != null) getHolder().drop(this);
         destroy();
     }
 
@@ -189,8 +188,7 @@ public abstract class Item {
     /**
      * Returns the default weight value
      */
-    @Model
-    private static double getDefaultWeight() {
+    public static double getDefaultWeight() {
         return 15.00;
     }
 
@@ -256,7 +254,7 @@ public abstract class Item {
      * Returns a default value for an item if the given item was not valid;
      *  | canHaveAsValue(result)
      */
-    protected int getDefaultValue() {
+    public int getDefaultValue() {
         return 0;
     }
 
@@ -356,7 +354,7 @@ public abstract class Item {
      *          false otherwise
      *          | result ==
      *          | canHaveAsHolder(getHolder()) &&
-     *          | ( liesOnGround() || getHolder().holdsItem(this) )
+     *          | ( liesOnGround() || getHolder().holdsItemDirectly(this) )
      */
     public boolean hasProperHolder() {
         return canHaveAsHolder(getHolder()) && (liesOnGround() || getHolder().holdsItemDirectly(this));
@@ -371,4 +369,9 @@ public abstract class Item {
      */
     public abstract int getShiny();
 
+
+    @Override
+    public String toString() {
+        return String.format("%s -> total weight: %.2f, total value: %d", getClass().getSimpleName(), getWeight(), getValue());
+    }
 }

@@ -5,6 +5,7 @@ import be.kuleuven.cs.som.annotate.Immutable;
 import be.kuleuven.cs.som.annotate.Model;
 import be.kuleuven.cs.som.annotate.Raw;
 import rpg.exceptions.BrokenItemException;
+import rpg.exceptions.InvalidAnchorException;
 import rpg.exceptions.InvalidHolderException;
 
 import java.util.*;
@@ -18,8 +19,8 @@ import java.util.*;
  *          | isValidMaxProtection(getMaxProtection())
  * @invar   Each armor has a valid effective protection
  *          | canHaveAsEffectiveProtection(getEffectiveProtection())
- * @invar   Each armorType has a valid name
- *          | isValidNameForArmorType(name)
+ *
+ * @note    Was not required to be implemented
  */
 public class Armor extends Item implements Degradable {
 
@@ -37,7 +38,7 @@ public class Armor extends Item implements Degradable {
      * @param   maxProtection
      *          The given maximum protection
      *
-     * @effect  This armor is initialized with the given id, weight, value and holder.
+     * @effect  This armor is initialized with the given id if valid otherwise uses a generated id, weight, value and holder.
      *          | super(id, weight, value, holder)
      * @post    The identification of this Armor is added to the used ids
      *          | new.usedIds.contains(getId())
@@ -53,13 +54,59 @@ public class Armor extends Item implements Degradable {
      */
     @Raw
     public Armor(long id, double weight, int value, ItemHolder holder, int maxProtection)
-            throws InvalidHolderException {
+            throws InvalidHolderException, InvalidAnchorException {
+            this(id, weight, value, maxProtection);
+            if(holder != null) {
+                if(!canHaveAsHolder(holder)) throw new InvalidHolderException(holder, this);
+                if(!holder.canPickup(this)) throw new IllegalArgumentException(holder + " cannot pick up this " + this);
+                try {
+                    holder.pickup(this);
+                } catch (Exception e) {
+                    // Should not happen
+                    assert false;
+                }
+            }
 
-        super(isValidNewId(id) ? id: getNextId(), weight, value, holder);
+    }
+
+    /**
+     * Initializes this new armor with the given id, weight, value and maximum protection
+     *
+     * @param   id
+     *          The identification of the new armor
+     * @param   weight
+     *          The weight of the new Armor
+     * @param   value
+     *          The value of the new Armor
+     * @param   maxProtection
+     *          The maximum protection of the new armor
+     *
+     * @effect  Initializes armor with the given identification or a generated one if the given one was not valid,
+     *          the given weight and value
+     *          | super(isValidNewId(id)? id: getNextId(), weight, value)
+     * @post    The identification of this new Armor is added to the set of already used ids
+     *          | new.usedIds.contains(getId())
+     * @post    If the given maximum protection is valid the maximum protection this Armor offers is set to the given
+     *          protection, otherwise it is set to a default maximum protection
+     *          | if(isValidMaxProtection(maxProtection))
+     *          | then new.getMaxProtection() == maxProtection
+     * @effect  Sets the effective protection this armor offers to its maximum protection
+     *          | setEffectiveProtection(getMaxProtection())
+     */
+    @Raw
+    public Armor(long id, double weight, int value, int maxProtection) {
+        super(isValidNewId(id) ? id: getNextId(), weight, value);
         usedIds.add(getId());
-
-        if (!isValidMaxProtection(maxProtection)) maxProtection = getDefaultMaxProtection();
+        if(!isValidMaxProtection(maxProtection)) maxProtection = getDefaultMaxProtection();
         this.maxProtection = maxProtection;
+        setEffectiveProtection(getMaxProtection());
+    }
+
+    public Armor(long id, double weight, int value, String armorType) throws IllegalArgumentException {
+        super(isValidNewId(id)? id: getNextId(), weight, value);
+        usedIds.add(getId());
+        if(!armorTypes.containsKey(armorType)) throw new IllegalArgumentException("The given armor type is not defined");
+        this.maxProtection = getArmorTypes().get(armorType);
         setEffectiveProtection(getMaxProtection());
     }
 
@@ -299,11 +346,24 @@ public class Armor extends Item implements Degradable {
 
     /**
      * Map of Armor Types with their associated maximum protection
+     *
+     * @invar   armorTypes is effective
+     *          | armorTypes != null
+     * @invar   Each key must be a valid name
+     *          | for each key, value in armorTypes:
+     *          |   isValidArmorTypeName(key)
+     * @invar   Each value must be a valid maximum protection
+     *          | for each key, value in armorTypes:
+     *          |   isValidMaxProtection(value)
      */
     private static final Map<String, Integer> armorTypes = new HashMap<>();
 
+    /**
+     * @return a copy of the defined armor types
+     */
+    @Basic
     public static Map<String, Integer> getArmorTypes() {
-        return armorTypes;
+        return new HashMap<>(armorTypes);
     }
 
     /**
@@ -315,7 +375,7 @@ public class Armor extends Item implements Degradable {
      *          Maximum protection associated with the armor type
      * @post    The given armor type is added to the map of armor types.
      *          | new.getArmorTypes().contains(name) &&
-     *          | new.getArmorTypes().contain
+     *          | new.getArmorTypes().get(name) == maxProtection
      * @throws  IllegalArgumentException
      *          The given armor type name is invalid
      *          | !isValidArmorTypeName(name)
@@ -326,7 +386,7 @@ public class Armor extends Item implements Degradable {
     public static void addArmorType(String name, int maxProtection) throws IllegalArgumentException {
         if(!isValidArmorTypeName(name)) throw new IllegalArgumentException("Not a valid name for an armor type");
         if(!isValidMaxProtection(maxProtection)) throw new IllegalArgumentException("Not a valid maximum protection");
-        getArmorTypes().put(name, maxProtection);
+        armorTypes.put(name, maxProtection);
     }
 
     /**

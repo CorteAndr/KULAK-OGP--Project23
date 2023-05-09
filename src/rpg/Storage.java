@@ -3,7 +3,7 @@ package rpg;
 import be.kuleuven.cs.som.annotate.Basic;
 import be.kuleuven.cs.som.annotate.Immutable;
 import be.kuleuven.cs.som.annotate.Raw;
-import rpg.exceptions.BrokenItemException;
+import rpg.exceptions.InvalidAnchorException;
 import rpg.exceptions.InvalidHolderException;
 
 import java.util.Random;
@@ -34,7 +34,7 @@ public abstract class Storage extends Item {
      */
     @Raw
     protected Storage(long id, double weight, int value, ItemHolder holder)
-            throws InvalidHolderException {
+            throws InvalidHolderException, InvalidAnchorException {
         super(id, weight, value, holder);
     }
 
@@ -54,6 +54,16 @@ public abstract class Storage extends Item {
     @Raw
     protected Storage(long id, double weight, int value) {
         super(id, weight, value);
+    }
+
+    /**
+     *
+     * @param id
+     * @param weight
+     */
+    @Raw
+    public Storage(long id, double weight) {
+        super(id, weight, 0);
     }
 
     /*

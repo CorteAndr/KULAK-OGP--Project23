@@ -20,12 +20,14 @@ import java.util.*;
  *          | canHaveAsName(getName())
  * @invar   Each entity must have a valid maximum of hit points
  *          | canHaveAsMaxHitPoints(getMaxHitPoints())
- * @invar   Each entity must have a valid number of hit points when outside of combat
+ * @invar   Each entity must have a valid number of hit points
  *          | canHaveAsHitPoints(getHitPoints())
  * @invar   Each entity must have proper anchors
  *          | hasProperAnchors()
  * @invar   Each entity must have a valid base protection
  *          | canHaveAsBaseProtection(getBaseProtection())
+ * @invar   Each entity must have a valid capacity
+ *          | canHaveAsCapacity(getCapacity())
  */
 public abstract class Entity implements ItemHolder {
 
@@ -34,8 +36,8 @@ public abstract class Entity implements ItemHolder {
      */
 
     /**
-     * Initializes a new entity with the given name and maximum number of hit points alongside its actual hit points and
-     * no anchors.
+     * Initializes a new entity with the given name and maximum number of hit points alongside its intrinsic protection
+     * and empty anchors.
      *
      * @param   name
      *          The name of the new entity
@@ -50,7 +52,7 @@ public abstract class Entity implements ItemHolder {
      */
     @Raw
     protected Entity(String name, int maxHitPoints, int protection)
-            throws IllegalArgumentException, InvalidAnchorException {
+            throws IllegalArgumentException {
         this(name, maxHitPoints, getFirstLowerPrime(maxHitPoints), protection);
     }
 
@@ -82,7 +84,7 @@ public abstract class Entity implements ItemHolder {
      */
     @Raw
     protected Entity(String name, int maxHitPoints, int hitPoints, int protection)
-            throws IllegalArgumentException, InvalidAnchorException {
+            throws IllegalArgumentException {
         setName(name);
         setMaxHitPoints(maxHitPoints);
         setHitPoints(hitPoints);
@@ -105,7 +107,7 @@ public abstract class Entity implements ItemHolder {
      *          | this(name, maxHitPoints, getFirstLowerPrime(maxHitPoints), anchors
      */
     @Raw
-    protected Entity(String name, int maxHitPoints, Map<Anchor, Item> anchors, int protection)
+    protected Entity(String name, int maxHitPoints, Map<Anchorpoint, Item> anchors, int protection)
             throws IllegalArgumentException, InvalidAnchorException, BrokenItemException, InvalidHolderException {
         this(name, maxHitPoints, getFirstLowerPrime(maxHitPoints), anchors, protection);
     }
@@ -129,7 +131,7 @@ public abstract class Entity implements ItemHolder {
      *          | setAnchors(anchors)
      *
      */
-    protected Entity(String name, int maxHitPoints, int hitPoints, Map<Anchor, Item> anchors, int protection)
+    protected Entity(String name, int maxHitPoints, int hitPoints, Map<Anchorpoint, Item> anchors, int protection)
             throws IllegalArgumentException, InvalidAnchorException, InvalidHolderException, BrokenItemException {
 
         this(name, maxHitPoints, hitPoints, protection);
@@ -230,6 +232,11 @@ public abstract class Entity implements ItemHolder {
     private int hitPoints = 97;
 
     /**
+     * Variable referencing whether this entity is fighting or not
+     */
+    private boolean isFighting = false;
+
+    /**
      * @return  The maximum HP this entity can have
      */
     public int getMaxHitPoints() {
@@ -243,6 +250,12 @@ public abstract class Entity implements ItemHolder {
         return hitPoints;
     }
 
+    /**
+     * @return  Whether this entity is fighting or not
+     */
+    public boolean isFighting() {
+        return isFighting;
+    }
     /**
      * Sets the maximum hit points of this entity to the given maximum hit points
      *
@@ -334,15 +347,16 @@ public abstract class Entity implements ItemHolder {
      *          | if(amount > getHitPoints)
      *          | then die()
      * @effect  If the given amount of damage taken does not exceed the current hit points then the hit points of this
-     *          entity then the hit points of this entity is decreased with the given amount
+     *          entity then the hit points of this entity is decreased with the given amount and lowered to the first
+     *          prime
      *          | if( !(amount > getHitPoints()) )
-     *          | then setHitPoints(getHitPoints() - amount)
+     *          | then setHitPoints(getFirstLowerPrime(getHitPoints() - amount))
      */
     public void takeDamage(int amount) {
         if(amount > getHitPoints()) {
             die();
         } else {
-            setHitPoints(getHitPoints() - amount);
+            setHitPoints(getFirstLowerPrime(getHitPoints() - amount));
         }
     }
 
@@ -359,9 +373,29 @@ public abstract class Entity implements ItemHolder {
      *          |       !isPrime(num)
      *          | )
      */
-    protected static int getFirstLowerPrime(int number) {
+    public static int getFirstLowerPrime(int number) {
         while(!isPrime(number) && number > 1) number--;
         return number;
+    }
+
+    /**
+     * Set this entity as fighting
+     *
+     * @post    Sets the fighting attribute to true
+     *          | new.isFighting()
+     */
+    protected void startFighting() {
+        this.isFighting = true;
+    }
+
+    /**
+     * Sets this entity as not fighting
+     *
+     * @post    Sets the fighting attribute to false
+     *          | !new.isFighting()
+     */
+    protected void stopFighting() {
+        this.isFighting = false;
     }
 
     /**
@@ -388,13 +422,15 @@ public abstract class Entity implements ItemHolder {
      * @param   hitPoints
      *          The number of hit points to check
      * @return  True if and only if the given hit points are positive and less than or equal to the maximum hitPoints
-     *          of this entity and the given hit points is a prime number
-     *          | result ==
+     *          of this entity and this entity is either fighting or the given hit points is a prime number
+     *          | result == (
      *          |   ( 0 <= hitPoints ) &&
-     *          |   ( hitPoints <= getMaxHitPoints() )
+     *          |   ( hitPoints <= getMaxHitPoints()) &&
+     *          |   (isFighting || isPrime(hitPoints))
+     *          | )
      */
     public boolean canHaveAsHitPoints(int hitPoints) {
-        return (0 <= hitPoints ) && (hitPoints <= getMaxHitPoints()) && (isPrime(hitPoints));
+        return (0 <= hitPoints ) && (hitPoints <= getMaxHitPoints()) && (isFighting || (isPrime(hitPoints)));
     }
 
 
@@ -416,7 +452,7 @@ public abstract class Entity implements ItemHolder {
     }
 
     /*
-        Anchor
+        Anchorpoint
      */
 
     /**
@@ -434,7 +470,7 @@ public abstract class Entity implements ItemHolder {
      *          | for each anchor, item in anchors:
      *          |   item == null || item.getHolder() == this
      */
-    private Map<Anchor, Item> anchors = new HashMap<>();
+    private Map<Anchorpoint, Item> anchors = new HashMap<>();
 
     /**
      *  Sets the anchors of this entity to the given Map of anchors
@@ -448,6 +484,7 @@ public abstract class Entity implements ItemHolder {
      *          |   then item.setHolder(this)
      *
      * @post    The anchors of this entity is set to the given anchors
+     *          | new.anchors == anchors
      *
      * @throws  IllegalArgumentException
      *          An item located inside anchors is already held by another item holder
@@ -464,11 +501,11 @@ public abstract class Entity implements ItemHolder {
     //TODO documentation
     @Model
     @Raw
-    protected void setAnchors(Map<Anchor, Item> anchors)
+    protected void setAnchors(Map<Anchorpoint, Item> anchors)
             throws IllegalArgumentException, InvalidAnchorException, InvalidHolderException {
         if(anchors == null) throw new IllegalArgumentException("The given anchors are not effective");
         int armorCount = 0;
-        for (Map.Entry<Anchor, Item> entry: anchors.entrySet()) {
+        for (Map.Entry<Anchorpoint, Item> entry: anchors.entrySet()) {
             if(entry.getValue() != null) {
                 Item item = entry.getValue();
                 // Check if the item is valid for its anchor
@@ -520,14 +557,14 @@ public abstract class Entity implements ItemHolder {
      *          The given item cannot have this entity as its holder.
      */
     @Model
-    private void setAnchor(Anchor anchor, Item item)
+    private void setAnchor(Anchorpoint anchor, Item item)
             throws InvalidAnchorException, IllegalArgumentException, InvalidHolderException {
         if(!hasAnchor(anchor)) throw new IllegalArgumentException("This anchor does not exist");
         if(!canHaveItemAtAnchor(item, anchor)) throw new InvalidAnchorException(this, item, anchor);
         if(getItemAt(anchor) != null) throw new InvalidAnchorException(this, item, anchor);
         if(!item.canHaveAsHolder(this)) throw new InvalidHolderException(this, item);
         try {
-            if(item.getHolder() != null || item.getHolder() != this) item.getHolder().drop(item);
+            if(item.getHolder() != null && item.getHolder() != this) item.getHolder().drop(item);
             item.setHolder(this);
             anchors.replace(anchor, item);
         } catch (Exception e) {
@@ -547,7 +584,7 @@ public abstract class Entity implements ItemHolder {
      *          |   ( anchor != null &&
      *          |   anchors.containsKey(anchor) )
      */
-    public boolean hasAnchor(Anchor anchor) {
+    public boolean hasAnchor(Anchorpoint anchor) {
         return anchor != null && getAnchorPoints().contains(anchor);
     }
 
@@ -555,8 +592,15 @@ public abstract class Entity implements ItemHolder {
      * Returns a set of the names of anchor associated with this entity
      */
     @Basic
-    public Set<Anchor> getAnchorPoints() {
+    public Set<Anchorpoint> getAnchorPoints() {
         return anchors.keySet();
+    }
+
+    /**
+     * Returns all items held by this entity
+     */
+    protected Collection<Item> getItems() {
+        return anchors.values();
     }
 
     /**
@@ -571,7 +615,7 @@ public abstract class Entity implements ItemHolder {
      *          | !anchor.contains
      */
     @Basic
-    public Item getItemAt(Anchor anchorPoint) throws IllegalArgumentException {
+    public Item getItemAt(Anchorpoint anchorPoint) throws IllegalArgumentException {
         if(hasAnchor(anchorPoint))
         {
                 return anchors.get(anchorPoint);
@@ -589,22 +633,25 @@ public abstract class Entity implements ItemHolder {
      *
      * @return  True if and only if the given item can be held at the given anchor of this entity, otherwise return false.
      *          | result == (
-     *          |   (getItemAt(anchor) == null || getItemAt(anchor) == item) &&
-     *          |       (item == null || !isDead() && (
-     *          |           (item instance of Purse && anchor.equals("Belt")) ||
-     *          |           ( !(item instanceof Purse.class) && !anchor.equals("Belt") && !item.isBroken()))))
+     *          |   item == null ||
+     *          |   !isDead() && (
+     *          |       anchor.canHoldItem(item) && (
+     *          |           getItemAt(anchor) == null ||
+     *          |           getItemAt(anchor) == item
+     *          |       )
+     *          |   )
+     *          |)
      * @throws  IllegalArgumentException
      *          The given anchor is not an anchor of this entity
      *          | !hasAnchor(anchor)
      */
-    public boolean canHaveItemAtAnchor(Item item, Anchor anchor) throws IllegalArgumentException {
+    public boolean canHaveItemAtAnchor(Item item, Anchorpoint anchor) throws IllegalArgumentException {
         if(!hasAnchor(anchor)) throw new IllegalArgumentException("This entity does not have an anchor named: " + anchor);
 
-        return (item == null || !isDead() && (
-                        (item instanceof Purse && anchor.equals(Anchor.BELT)) ||
-                                ( !(item instanceof Purse) && !anchor.equals(Anchor.BELT) && !item.isBroken()))) &&
-                (getItemAt(anchor) == null || getItemAt(anchor) == item);
+        return (item == null || !isDead() && (anchor.canHoldItem(item) &&
+                (getItemAt(anchor) == null || getItemAt(anchor) == item)));
     }
+
 
     /**
      * Return the anchor of the given item
@@ -618,9 +665,9 @@ public abstract class Entity implements ItemHolder {
      *          The given item is not directly held by this entity
      *          | !holdsItemDirectly(item)
      */
-    public Anchor getAnchorOf(Item item) throws IllegalArgumentException {
+    public Anchorpoint getAnchorOf(Item item) throws IllegalArgumentException {
         if(!holdsItemDirectly(item)) throw new IllegalArgumentException("The item is not directly held by this entity");
-        for(Anchor anchor: getAnchorPoints()) {
+        for(Anchorpoint anchor: getAnchorPoints()) {
             if(getItemAt(anchor) == item) return anchor;
         }
         // Should not happen
@@ -639,29 +686,49 @@ public abstract class Entity implements ItemHolder {
      *          |       (canHaveItemAtAnchor(item, anchor) && item.getHolder() == this)
      */
     public boolean hasProperAnchors() {
-        for (Map.Entry<Anchor, Item> entry: anchors.entrySet()) {
-            Anchor anchor = entry.getKey();
+        for (Map.Entry<Anchorpoint, Item> entry: anchors.entrySet()) {
+            Anchorpoint anchor = entry.getKey();
             Item item = entry.getValue();
             if(!canHaveItemAtAnchor(item, anchor) || item.getHolder() != this) return false;
         }
-        return true;
+        return getLoad() <= getCapacity();
     }
 
     /**
      * Returns the weight of all the items that this entity holds
      *
-     * @return  The weight of all items that this entity holds
+     * @return  The weight of all effective items that this entity holds
      *          | result == (
-     *          |   weight +
-     *          |   for each item in anchors.values():
-     *          |       item.getWeight()
+     *          |   0 +
+     *          |   for each item in this.getItems():
+     *          |       if(item != null)
+     *          |       then item.getWeight()
      */
+    //TODO ?
     public double getLoad() {
-        double weight = 0;
-        for(Item item: anchors.values()) {
+        double weight = 0.00;
+        for(Item item: getItems()) {
             if(item != null) weight += item.getWeight();
         }
         return weight;
+    }
+
+    /**
+     * Returns the total value of items held
+     *
+     * @return  The value of all effective items that this entity holds
+     *          | result == (
+     *          |   0 +
+     *          |   for each item in this.getItems():
+     *          |       if(item != null)
+     *          |       then item.getValue()
+     */
+    public int getValueHeld() {
+        int value = 0;
+        for(Item item: getItems()) {
+            if(item != null) value += item.getValue();
+        }
+        return value;
     }
 
     //TODO formal correct?
@@ -697,6 +764,20 @@ public abstract class Entity implements ItemHolder {
      */
     public abstract double getCapacity();
 
+
+    /**
+     * Checks if the given capacity is a valid capacity for this entity
+     *
+     * @param   capacity
+     *          The capacity to check
+     *
+     * @return  True if and only if the given capacity is greater than or equal to the total weight of the items this
+     *          entity holds
+     *          | result == (capacity >= getLoad())
+     */
+    public boolean canHaveAsCapacity(int capacity) {
+        return capacity >= getLoad();
+    }
     /*
         Item Holder
      */
@@ -723,8 +804,7 @@ public abstract class Entity implements ItemHolder {
     public boolean canPickup(Item item) throws IllegalArgumentException {
         if (item == null) throw new IllegalArgumentException("The given item is not effective");
 
-        return !(item instanceof Armor && getNbOfItemsOfTypeHeld(Armor.class) >= 2) &&
-                (item instanceof Purse || !item.isBroken()) && (
+        return (item instanceof Purse || !item.isBroken()) && (
                     holdsItemDirectly(item) || canPickup(item.getWeight())
                 );
     }
@@ -842,13 +922,13 @@ public abstract class Entity implements ItemHolder {
     @Raw
     public void pickup(Item item)
             throws IllegalArgumentException, BrokenItemException, InvalidHolderException,
-                InvalidAnchorException, DeadEntityException {
+            DeadEntityException {
         if(isDead()) throw new DeadEntityException(this);
         if(item == null) throw new IllegalArgumentException("The given item is not effective");
         if(!item.canHaveAsHolder(this)) throw new InvalidHolderException(this, item);
         if(!item.liesOnGround()) throw new IllegalArgumentException("The given item doesn't lie on the ground");
 
-        for (Anchor anchor: getAnchorPoints()) {
+        for (Anchorpoint anchor: getAnchorPoints()) {
             try {
                 if(canHaveItemAtAnchor(item, anchor)) {
                     pickup(item, anchor);
@@ -886,7 +966,7 @@ public abstract class Entity implements ItemHolder {
      *
      */
     @Raw
-    public void pickup(Item item, Anchor anchor)
+    public void pickup(Item item, Anchorpoint anchor)
             throws IllegalArgumentException, InvalidAnchorException, InvalidHolderException {
         if(item == null) throw new IllegalArgumentException("The given item is not effective");
         if(!hasAnchor(anchor)) throw new IllegalArgumentException(this + "has no anchor named: " + anchor);
@@ -937,7 +1017,7 @@ public abstract class Entity implements ItemHolder {
      * @return  The default protection of this entity
      *          | result == ?
      */
-    protected abstract int getDefaultProtection();
+    public abstract int getDefaultProtection();
 
     /**
      * Returns the value that is generated to check if a hit is effective or not.
@@ -947,12 +1027,12 @@ public abstract class Entity implements ItemHolder {
     /**
      * Returns the damage of this entity
      */
-    protected abstract int getDamage();
+    public abstract int getDamage();
 
     /**
      * Returns the protection of this entity
      */
-    protected abstract int getProtection();
+    public abstract int getProtection();
 
     /**
      * Hits the given opponent according to the rules of combat
@@ -962,19 +1042,25 @@ public abstract class Entity implements ItemHolder {
      *
      */
     protected void hit(Entity opponent)
-            throws IllegalArgumentException, DeadEntityException, InvalidAnchorException, InvalidHolderException {
+            throws IllegalArgumentException, DeadEntityException, InvalidAnchorException, InvalidHolderException, BrokenItemException {
         if(opponent == null) throw new IllegalArgumentException("The given opponent is not effective");
         if(opponent.isDead()) throw new DeadEntityException(opponent);
         if(this.isDead()) throw new DeadEntityException(this);
 
+        startFighting();
         if (getHitChance() > opponent.getProtection()) {
             if (getDamage() > opponent.getHitPoints()) {
-                opponent.die();
-                collectTreasuresFrom(opponent);
+                dealFinalBlow(opponent);
             } else {
                 opponent.takeDamage(this.getDamage());
             }
         }
+        stopFighting();
+    }
+
+    protected void dealFinalBlow(Entity opponent) throws InvalidAnchorException, InvalidHolderException, BrokenItemException {
+        opponent.die();
+        collectTreasuresFrom(opponent);
     }
 
     /**
@@ -1012,7 +1098,7 @@ public abstract class Entity implements ItemHolder {
      * @param   opponent
      *          The opponent to collect treasures from
      */
-    protected abstract void collectTreasuresFrom(Entity opponent) throws IllegalArgumentException, InvalidAnchorException, InvalidHolderException;
+    protected abstract void collectTreasuresFrom(Entity opponent) throws IllegalArgumentException, InvalidAnchorException, InvalidHolderException, BrokenItemException;
 
 
     /**
@@ -1046,25 +1132,37 @@ public abstract class Entity implements ItemHolder {
      *          | !getItemAt(anchorFrom).canHaveAsHolder(recipient)
      */
     @Raw
-    public void transferItemAtAnchorTo(Entity recipient, Anchor anchorFrom, Anchor anchorTo)
+    public void transferItemAtAnchorTo(Entity recipient, Anchorpoint anchorFrom, Anchorpoint anchorTo)
             throws IllegalArgumentException, InvalidAnchorException, InvalidHolderException {
         if(!hasAnchor(anchorFrom))
             throw new IllegalArgumentException(String.format("This entity does not have the anchor: %s", anchorFrom));
         if(!recipient.hasAnchor(anchorTo))
             throw new IllegalArgumentException(String.format("The recipient does not have the anchor: %s", anchorTo));
+        if(recipient.getItemAt(anchorTo) != null)
+            throw new IllegalArgumentException(String.format("The recipient already holds an item at: %s", anchorTo));
         Item item = getItemAt(anchorFrom);
         if(!recipient.canPickup(item))
             throw new InvalidHolderException(recipient, item);
         if(!recipient.canHaveItemAtAnchor(item, anchorTo))
             throw new InvalidAnchorException(recipient, item, anchorTo);
-        if(!item.canHaveAsHolder(recipient))
+        if(item != null && !item.canHaveAsHolder(recipient))
             throw new InvalidHolderException(recipient, item);
         try {
-            drop(item);
-            recipient.setAnchor(anchorTo, item);
+            if(item != null) drop(item);
+            recipient.pickup(item, anchorTo);
         } catch (Exception e) {
             // Should not happen
             assert false;
         }
+    }
+
+    /**
+     *
+     * @return
+     */
+    @Override
+    public String toString() {
+        return String.format("The %s %s%s:\n♥-%d/%d\n",
+                getClass().getSimpleName(), getName(), isDead()? "(Dead)": "", getHitPoints(), getMaxHitPoints());
     }
 }

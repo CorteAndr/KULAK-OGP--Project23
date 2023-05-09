@@ -5,7 +5,6 @@ import be.kuleuven.cs.som.annotate.Immutable;
 import be.kuleuven.cs.som.annotate.Model;
 import be.kuleuven.cs.som.annotate.Raw;
 import rpg.exceptions.BrokenItemException;
-import rpg.exceptions.InvalidAnchorException;
 import rpg.exceptions.InvalidHolderException;
 
 import java.util.*;
@@ -37,14 +36,25 @@ public class Backpack extends Storage implements ItemHolder {
      * @post    Initializes the contents of this backpack as an empty Hashmap
      *          | new.getContents() == new HashMap<>()
      */
-     public Backpack(double weight, int value, ItemHolder holder, double capacity)
+     protected Backpack(double weight, int value, ItemHolder holder, double capacity)
              throws BrokenItemException, InvalidHolderException {
 
          super(getNextId(), weight, value);
          if(!isValidCapacity(capacity)) capacity = getDefaultCapacity();
          this.capacity = capacity;
-         setHolder(holder);
 
+     }
+
+    /**
+     * Initializes this backpack with the given
+     * @param weight
+     * @param value
+     * @param capacity
+     */
+     public Backpack(double weight, int value, double capacity) {
+         super(getNextId(), weight, value);
+         if(!isValidCapacity(capacity)) capacity = getDefaultCapacity();
+         this.capacity = capacity;
      }
      /*
         Identification (TOTAL)
@@ -132,11 +142,11 @@ public class Backpack extends Storage implements ItemHolder {
      *          | contents != null
      * @invar   Each mapping references a valid list
      *          | for each key, list in contents:
-     *          | list != null
-     * @invar   Each element in each mapping references a non-broken item
+     *          |   list != null
+     * @invar   Each element in each mapping references a non-broken item or a Purse
      *          | for each key, list in contents:
      *          |   for each item in list:
-     *          |       !item.isBroken()
+     *          |       !item.isBroken() || item instanceof Purse
      * @invar   Each element in each mapping has the same id as the key of the mapping
      *          | for each key, list in contents:
      *          |   for each item in list:
