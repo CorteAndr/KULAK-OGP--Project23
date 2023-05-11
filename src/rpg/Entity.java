@@ -539,6 +539,9 @@ public abstract class Entity implements ItemHolder {
     protected void pickupItems(Collection<Item> items)
             throws IllegalArgumentException {
         if(items != null) {
+            if(items.stream().anyMatch(Armor.class::isInstance) && hasAnchor(Anchorpoint.BODY)) {
+                anchors.put(Anchorpoint.BODY, items.stream().filter(Armor.class::isInstance).findFirst().get());
+            }
             for(Item item: items) {
                 boolean foundAnchor = false;
                 if(item instanceof Armor) {
@@ -554,15 +557,11 @@ public abstract class Entity implements ItemHolder {
                 } else {
                     for (Anchorpoint anchor : getAnchorPoints()) {
                         if (canHaveItemAtAnchor(item, anchor) && anchor.canHoldItem(item)) {
-                            try {
-                                foundAnchor = true;
-                                item.setHolder(this);
-                                anchors.put(anchor, item);
-                                break;
-                            } catch (Exception e) {
-                                // Should not happen
-                                assert false;
-                            }
+
+                            foundAnchor = true;
+                            item.setHolder(this);
+                            anchors.put(anchor, item);
+                            break;
                         }
                     }
                     if (!foundAnchor) throw new IllegalArgumentException(
@@ -721,18 +720,17 @@ public abstract class Entity implements ItemHolder {
     /**
      * Checks if the anchors of this backpack are valid
      *
-     * @return  True if and only if each item can be held at its anchor and the items holder is this entity, otherwise
-     *          return false
+     * @return  True if and only the invariants of anchors are met
      *          | result == (
      *          |   for each anchor, item in anchors:
-     *          |       (canHaveItemAtAnchor(item, anchor) && item.getHolder() == this)
+     *          |       (canHaveItemAtAnchor(item, anchor) && (item == null || item.getHolder() == this)
      *          | )
      */
     public boolean hasProperAnchors() {
         for (Map.Entry<Anchorpoint, Item> entry: anchors.entrySet()) {
             Anchorpoint anchor = entry.getKey();
             Item item = entry.getValue();
-            if(!canHaveItemAtAnchor(item, anchor) || item.getHolder() != this) return false;
+            if(!canHaveItemAtAnchor(item, anchor) || (item != null && item.getHolder() != this)) return false;
         }
         return getLoad() <= getCapacity();
     }
@@ -818,7 +816,7 @@ public abstract class Entity implements ItemHolder {
      *          entity holds
      *          | result == (capacity >= getLoad())
      */
-    public boolean canHaveAsCapacity(int capacity) {
+    public boolean canHaveAsCapacity(double capacity) {
         return capacity >= getLoad();
     }
     /*

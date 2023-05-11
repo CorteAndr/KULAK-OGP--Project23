@@ -407,7 +407,7 @@ public class Backpack extends Storage implements ItemHolder {
     @Override
     public boolean canPickup(Item item) throws IllegalArgumentException {
         if(item == null) throw new IllegalArgumentException("The given item is not effective");
-        return !item.isBroken() && (holdsItemDirectly(item) || canPickup(item.getWeight()));
+        return (holdsItemDirectly(item) || canPickup(item.getWeight()));
     }
 
     /**
@@ -416,9 +416,13 @@ public class Backpack extends Storage implements ItemHolder {
      * @param   weight
      *          The given weight
      *
-     * @return  True if and only if the weight added to the current load doesn't exceed the capacity of this backpack.
+     * @return  True if and only if the weight added to the current load doesn't exceed the capacity of this backpack
+     *          and either this backpack lies on the ground or its holder can pick up the given weight.
      *          Otherwise, return false.
-     *          | result == getLoad() + weight <= getCapacity
+     *          | result == (
+     *          |   (getLoad() + weight <= getCapacity) &&
+     *          |   (liesOnGround() || getHolder().canPickup(weight))
+     *          | )
      * @throws  IllegalArgumentException
      *          The given weight is negative
      *          | weight < 0
@@ -426,7 +430,8 @@ public class Backpack extends Storage implements ItemHolder {
     @Override
     public boolean canPickup(double weight) throws IllegalArgumentException {
         if(weight < 0) throw new IllegalArgumentException("The given weight is negative");
-        return getLoad() + weight <= getCapacity();
+        return (getLoad() + weight <= getCapacity()) &&
+                (liesOnGround() || getHolder().canPickup(weight));
     }
 
     /**

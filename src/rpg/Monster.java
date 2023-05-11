@@ -49,7 +49,7 @@ public class Monster extends Entity {
      */
     @Raw
     public Monster(String name, int maxHitPoints, int hitPoints, Collection<Anchorpoint> anchors, int protection, int damage)
-            throws IllegalArgumentException, InvalidHolderException {
+            throws IllegalArgumentException {
         super(name, maxHitPoints, hitPoints, anchors, protection);
         setDamage(damage);
         this.capacity = (new Random()).nextInt(10, 151);
@@ -77,7 +77,7 @@ public class Monster extends Entity {
      */
     @Raw
     public Monster(String name, int maxHitPoints, int protection, int damage)
-            throws BrokenItemException {
+            throws IllegalArgumentException {
         super(name, maxHitPoints, getRandomAnchors(), protection);
         setDamage(damage);
         pickupItems(getRandomItemsFor(getAnchorPoints()));
@@ -109,7 +109,7 @@ public class Monster extends Entity {
      */
     @Raw
     public Monster(String name, int maxHitPoints, int protection, int damage, Collection<Item> items)
-            throws IllegalArgumentException, InvalidHolderException {
+            throws IllegalArgumentException {
         super(name, maxHitPoints, Entity.getFirstLowerPrime(maxHitPoints), getAnchorsFor(items), items, protection);
         setDamage(damage);
         this.capacity = getLoad();

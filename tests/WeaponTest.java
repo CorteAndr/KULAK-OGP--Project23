@@ -18,7 +18,7 @@ public class WeaponTest {
     void testConstructors() {
         // Non-null holders are tested in item holder tests
         try {
-            weapon1 = new Weapon(25.00, null, 21);
+            weapon1 = new Weapon(25.00, 21);
         } catch (Exception e) {
             // Should not happen here
             assert false;

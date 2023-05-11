@@ -494,7 +494,8 @@ public class Hero extends Entity {
      */
     @Override
     public boolean canHaveAsName(String name) {
+        if(name == null) return false;
         if((name.length() - name.replace("'","").length()) > 2) return false;
-        return super.canHaveAsName(name) && name.matches(String.format("[a-zA-Z'[: ] %s]*", getSpecialCharacters()));
+        return super.canHaveAsName(name) && name.matches(String.format("([a-zA-Z'%s ]|(: )?)*", getSpecialCharacters()));
     }
 }

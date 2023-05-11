@@ -185,6 +185,8 @@ public class Purse extends Storage {
     public void addDucats(int amount) throws BrokenItemException {
         if(amount <= 0) throw new IllegalArgumentException("The amount of ducats to add should be strictly positive");
         if(canHaveAsContents(getContents() + amount)) {
+            if(getHolder() != null && getHolder().canPickup(amount * getDucatWeight()))
+                throw new IllegalArgumentException("The holder of this purse cannot have the given weight");
             setContent(getContents() + amount);
             setValue(getContents());
         } else {
@@ -296,12 +298,18 @@ public class Purse extends Storage {
     public boolean canHaveAsHolder(ItemHolder holder) {
         return holder == null || (getHolder() == holder || holder.canPickup(this));
     }
+
+    /**
+     * Variable referencing the weight of a single ducat
+     */
+    private static final double ducatWeight = 0.05;
+
     /**
      * @return  The weight of a singular ducat expressed in kg.
      */
     @Basic @Immutable
     public static double getDucatWeight() {
-        return 0.050;
+        return ducatWeight;
     }
 
     /**

@@ -4,11 +4,9 @@ import rpg.*;
 
 public class EntityTest {
 
-    private static Hero hero1;
-    private static Hero hero2;
+    private static Hero hero;
 
-    private static Monster monster1;
-    private static Monster monster2;
+    private static Monster monster;
 
     private static Weapon weapon;
     private static Armor armor;
@@ -18,6 +16,9 @@ public class EntityTest {
 
     @BeforeEach
     void setup() {
+        hero = new Hero("Human: World's Hero", 25.30);
+        monster = new Monster("Goblin", 130, 10, 50);
+
 
     }
 

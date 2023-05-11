@@ -100,6 +100,6 @@ public enum Anchorpoint {
     public boolean canHoldItem(Item item) {
         return (item == null ||
                 (item instanceof Purse && this == BELT) ||
-                ( !(item instanceof Purse) && !item.isBroken()));
+                ( (!(item instanceof Purse) && this != BELT) && !item.isBroken()));
     }
 }
