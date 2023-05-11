@@ -4,7 +4,6 @@ import be.kuleuven.cs.som.annotate.Basic;
 import be.kuleuven.cs.som.annotate.Immutable;
 import be.kuleuven.cs.som.annotate.Model;
 import rpg.exceptions.BrokenItemException;
-import rpg.exceptions.InvalidAnchorException;
 import rpg.exceptions.InvalidHolderException;
 
 /**
@@ -29,17 +28,12 @@ public class Purse extends Storage {
      *          The given id
      * @param   weight
      *          The given weight
-     * @param   holder
-     *          The given holder
      * @param   capacity
      *          The given capacity
      * @param   contents
      *          The given contents
-     * @effect  Initializes this purse with the given id, weight, holder and value equal to contents.
-     *          | super(id, weight, contents, holder)
-     * @effect  If the given contents are not valid, then the value of this purse is set to the
-     *          |
-     *          | setValue()
+     * @effect  Initializes this purse with the given id, weight and no value.
+     *          | super(id, weight, 0)
      * @post    If the given capacity is a valid capacity then the capacity of this purse is set to the given capacity
      *          Otherwise it is set to the default capacity of a purse
      *          | if(isValidCapacity(capacity)
@@ -54,68 +48,38 @@ public class Purse extends Storage {
      *          | new.getContents() == contents
      *          | else
      *          | new.getContents() == getDefaultContents()
+     * @effect  The value of this new purse is set to its contents
+     *          | setValue(getContents())
      */
-    public Purse(long id, double weight, ItemHolder holder, int capacity, int contents)
-            throws BrokenItemException, InvalidHolderException, InvalidAnchorException {
-        super(id, weight, contents, holder);
+    public Purse(long id, double weight, int capacity, int contents) {
+        super(id, weight, 0);
         if(!isValidCapacity(capacity)) capacity = getDefaultCapacity();
         if(!canHaveAsContents(contents)) {
             contents = getDefaultContents();
-            setValue(contents);
         }
         this.capacity = capacity;
-        setContent(contents);
+        try {
+            setContent(contents);
+        } catch (Exception e) {
+            //Should not happen
+            assert false;
+        }
+        setValue(getContents());
     }
 
     /**
-     * Initializes this purse with the given id, weight, holder and capacity. Its own value is set to 0 and its contents
-     * are set to the default contents.
-     *
-     * @param   id
-     *          The given id
-     * @param   weight
-     *          The given weight
-     * @param   holder
-     *          The given holder
-     * @param   capacity
-     *          The given capacity
-     * @effect  Initializes this purse with the given id, weight, holder, capacity and default contents. Its value
-     *          is set to 0
-     *          | this(id, weight, holder, capacity, getDefaultContents())
-     */
-    public Purse(long id, double weight, ItemHolder holder, int capacity)
-            throws BrokenItemException, InvalidHolderException, InvalidAnchorException {
-        this(id, weight, holder, capacity, getDefaultContents());
-    }
-
-    /**
-     * Initializes this purse with the given weight, holder and capacity alongside a generated id, value of 0 and
-     * contents set to the default contents.
+     * Initializes a new purse with the given weight and capacity
      *
      * @param   weight
-     *          The given weight
-     * @param   holder
-     *          The given holder
+     *          The weight of the new Purse
      * @param   capacity
-     *          The given capacity
-     * @effect  This purse is initialized with a generated id, the given weight, holder and capacity alongside a value
-     *          of 0 and contents set to the default contents
-     *          | this(generateId(), weight, holder, capacity, getDefaultContents())
+     *          The capacity of the new Purse
+     *
+     * @effect
      */
-    public Purse(double weight, ItemHolder holder, int capacity)
-            throws BrokenItemException, InvalidHolderException, InvalidAnchorException {
-        this(generateId(), weight, holder, capacity, getDefaultContents());
-    }
-
-    public Purse(double weight, ItemHolder holder, int capacity, int contents)
-            throws BrokenItemException, InvalidHolderException, InvalidAnchorException {
-        this(generateId(), weight, holder, capacity, contents);
-    }
-
-    public Purse(double weight, int capacity) throws BrokenItemException, InvalidHolderException, InvalidAnchorException {
-        super(generateId(), weight);
-        this.capacity = capacity;
-        setContent(getDefaultContents());
+    //TODO
+    public Purse(double weight, int capacity) {
+        this(generateId(), weight, capacity, getDefaultContents());
     }
 
 
@@ -127,7 +91,10 @@ public class Purse extends Storage {
         return 0L;
     }
 
-
+    /**
+     * @return  A valid identification for a purse
+     *          | canHaveAsId(result)
+     */
     private static long generateId() {
         return 0L;
     }
@@ -265,7 +232,7 @@ public class Purse extends Storage {
     }
 
     /**
-     * Transfers an amount of ducats to an other purse
+     * Transfers an amount of ducats to another purse
      *
      * @param   other
      *          The other purse to transfer to

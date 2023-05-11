@@ -23,34 +23,6 @@ public class Weapon extends Item implements Degradable {
         Constructors
      */
     /**
-     *  Initializes this weapon with a generated identification and given weight, holder, value and damage;
-     *
-     * @param   weight
-     *          The weight of the new weapon
-     * @param   holder
-     *          The holder of the new weapon
-     * @param   damage
-     *          The damage of the new weapon
-     *
-     * @effect  Initializes this weapon with a currently available identification, the given weight
-     *          , value set to value evaluated from its damage and the given damage
-     *          | this(weight, damage)
-     * @effect  The given holder picks up this weapon
-     *          | holder.pickup(this)
-     */
-    public Weapon(double weight, ItemHolder holder, int damage)
-            throws IllegalArgumentException, InvalidHolderException, InvalidAnchorException {
-        this(weight, damage);
-        if(!canHaveAsHolder(holder)) throw new InvalidHolderException(holder, this);
-        if(holder != null && !holder.canPickup(this)) throw new InvalidHolderException(holder, this);
-        try {
-            if(holder != null) holder.pickup(this);
-        } catch (Exception e) {
-            assert false;
-        }
-    }
-
-    /**
      * Initializes this weapon with the given weight and damage and a generated identification and calculated value
      *
      * @param   weight

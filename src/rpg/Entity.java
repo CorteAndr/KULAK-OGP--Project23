@@ -107,8 +107,8 @@ public abstract class Entity implements ItemHolder {
      *          | this(name, maxHitPoints, getFirstLowerPrime(maxHitPoints), anchors
      */
     @Raw
-    protected Entity(String name, int maxHitPoints, Map<Anchorpoint, Item> anchors, int protection)
-            throws IllegalArgumentException, InvalidAnchorException, BrokenItemException, InvalidHolderException {
+    protected Entity(String name, int maxHitPoints, Collection<Anchorpoint> anchors, int protection)
+            throws IllegalArgumentException {
         this(name, maxHitPoints, getFirstLowerPrime(maxHitPoints), anchors, protection);
     }
 
@@ -131,11 +131,38 @@ public abstract class Entity implements ItemHolder {
      *          | setAnchors(anchors)
      *
      */
-    protected Entity(String name, int maxHitPoints, int hitPoints, Map<Anchorpoint, Item> anchors, int protection)
-            throws IllegalArgumentException, InvalidAnchorException, InvalidHolderException, BrokenItemException {
-
+    protected Entity(String name, int maxHitPoints, int hitPoints, Collection<Anchorpoint> anchors, int protection)
+        throws IllegalArgumentException {
         this(name, maxHitPoints, hitPoints, protection);
         setAnchors(anchors);
+    }
+
+    /**
+     * Initializes an Entity with the given name, maximum hit points, actual hit points, anchor points, items and
+     * protection
+     *
+     * @param   name
+     *          The name for the new Entity
+     * @param   maxHitPoints
+     *          The maximum hit points of the new Entity
+     * @param   hitPoints
+     *          The actual hit points of the new Entity
+     * @param   anchors
+     *          The anchor points of the new Entity
+     * @param   items
+     *          The items of the new Entity
+     * @param   protection
+     *          The intrinsic protection of the new Entity
+     *
+     * @effect  Initializes this Entity with the given name, maximum hit points, actual hit points, anchors and protection
+     *          | super(name, maxHitPoints, hitPoints, anchors, protection)
+     * @effect  Allocates all given items to anchors of this new Entity
+     *          | pickupItems(items)
+     */
+    protected Entity(String name, int maxHitPoints, int hitPoints, Collection<Anchorpoint> anchors, Collection<Item> items, int protection)
+            throws IllegalArgumentException {
+        this(name, maxHitPoints, hitPoints, anchors, protection);
+        pickupItems(items);
     }
 
     /*
@@ -472,61 +499,77 @@ public abstract class Entity implements ItemHolder {
      */
     private Map<Anchorpoint, Item> anchors = new HashMap<>();
 
+
     /**
-     *  Sets the anchors of this entity to the given Map of anchors
+     * Adds the given anchor points to this entity
      *
      * @param   anchors
-     *          The new anchors
+     *          The anchor points to add
      *
-     * @effect  Sets the holder of each effective item that can be located at its anchor to this entity
-     *          | for each anchor, item in anchors:
-     *          |   if (item != null)
-     *          |   then item.setHolder(this)
+     * @post    Each anchorpoint in the given anchor points is added if this did not have the anchor already
+     *          | for each anchor in anchorpoints:
+     *          |   new.hasAnchor(anchor)
+     */
+    protected void setAnchors(Collection<Anchorpoint> anchors) {
+        for (Anchorpoint anchor: anchors) {
+            if(!hasAnchor(anchor)) this.anchors.put(anchor, null);
+        }
+    }
+
+    /**
+     * Allocates all the given item at anchors
      *
-     * @post    The anchors of this entity is set to the given anchors
-     *          | new.anchors == anchors
+     * @param   items
+     *          The items to allocate
+     *
+     * @pre     Each item should be able to be picked up by this entity
+     *          | for each item in items:
+     *          |   canPickup(item)
+     *
+     * @effect  Each item is allocated to an anchor of this Entity
+     *          | for each item in items:
+     *          |   holdsItemDirectly(item)
      *
      * @throws  IllegalArgumentException
-     *          An item located inside anchors is already held by another item holder
-     *          | ???
-     * @throws  InvalidAnchorException
-     *          An item cannot be located at its associated anchor
-     *          | ???
-     * @throws  InvalidAnchorException
-     *          If this entity is not a valid holder for an item
-     *          | ???
-     * @throws  IllegalArgumentException
-     *          If the given anchors contain more than 2 Armors (directly or indirectly)
+     *          When no anchor is found for a specific item
      */
     //TODO documentation
     @Model
     @Raw
-    protected void setAnchors(Map<Anchorpoint, Item> anchors)
-            throws IllegalArgumentException, InvalidAnchorException, InvalidHolderException {
-        if(anchors == null) throw new IllegalArgumentException("The given anchors are not effective");
-        int armorCount = 0;
-        for (Map.Entry<Anchorpoint, Item> entry: anchors.entrySet()) {
-            if(entry.getValue() != null) {
-                Item item = entry.getValue();
-                // Check if the item is valid for its anchor
-                if(item.getHolder() != this && item.getHolder() != null)
-                    throw new IllegalArgumentException(String.format("The item %s is already held by %s", item, item.getHolder()));
-                if (!hasAnchor(entry.getKey())) this.anchors.put(entry.getKey(), null);
-                if(!canHaveItemAtAnchor(item, entry.getKey())) throw new InvalidAnchorException(this, item, entry.getKey());
-                if(!item.canHaveAsHolder(this)) throw new InvalidHolderException(this, item);
-                try {
-                    if (item instanceof Armor) armorCount++;
-                    if (item instanceof Backpack)
-                        armorCount += ((Backpack) item).getNbOfItemsOfTypeHeld(Armor.class);
-                    item.setHolder(this);
-                } catch (Exception e) {
-                    // Should not happen
-                    assert false;
+    protected void pickupItems(Collection<Item> items)
+            throws IllegalArgumentException {
+        if(items != null) {
+            for(Item item: items) {
+                boolean foundAnchor = false;
+                if(item instanceof Armor) {
+                    if(hasAnchor(Anchorpoint.BODY) && canHaveItemAtAnchor(item, Anchorpoint.BODY))
+                        try {
+                            foundAnchor = true;
+                            item.setHolder(this);
+                            anchors.put(Anchorpoint.BODY, item);
+                        } catch (Exception e) {
+                            assert false;
+                        }
+
+                } else {
+                    for (Anchorpoint anchor : getAnchorPoints()) {
+                        if (canHaveItemAtAnchor(item, anchor) && anchor.canHoldItem(item)) {
+                            try {
+                                foundAnchor = true;
+                                item.setHolder(this);
+                                anchors.put(anchor, item);
+                                break;
+                            } catch (Exception e) {
+                                // Should not happen
+                                assert false;
+                            }
+                        }
+                    }
+                    if (!foundAnchor) throw new IllegalArgumentException(
+                            String.format("No anchor was found for %h at %h", item, this));
                 }
-                if(armorCount > 2) throw new IllegalArgumentException("An entity cannot hold more than 2 armors");
             }
         }
-        this.anchors = anchors;
     }
 
     /**
@@ -562,7 +605,6 @@ public abstract class Entity implements ItemHolder {
         if(!hasAnchor(anchor)) throw new IllegalArgumentException("This anchor does not exist");
         if(!canHaveItemAtAnchor(item, anchor)) throw new InvalidAnchorException(this, item, anchor);
         if(getItemAt(anchor) != null) throw new InvalidAnchorException(this, item, anchor);
-        if(!item.canHaveAsHolder(this)) throw new InvalidHolderException(this, item);
         try {
             if(item.getHolder() != null && item.getHolder() != this) item.getHolder().drop(item);
             item.setHolder(this);
@@ -684,6 +726,7 @@ public abstract class Entity implements ItemHolder {
      *          | result == (
      *          |   for each anchor, item in anchors:
      *          |       (canHaveItemAtAnchor(item, anchor) && item.getHolder() == this)
+     *          | )
      */
     public boolean hasProperAnchors() {
         for (Map.Entry<Anchorpoint, Item> entry: anchors.entrySet()) {
@@ -882,12 +925,7 @@ public abstract class Entity implements ItemHolder {
         if(!holdsItemDirectly(item)) throw new IllegalArgumentException("The given item is not held by this entity");
 
         anchors.put(getAnchorOf(item), null);
-        try {
-            item.setHolder(null);
-        } catch (InvalidHolderException e) {
-            // Should not happen
-            assert false;
-        }
+        item.setHolder(null);
     }
 
     /**
@@ -1061,6 +1099,9 @@ public abstract class Entity implements ItemHolder {
     protected void dealFinalBlow(Entity opponent) throws InvalidAnchorException, InvalidHolderException, BrokenItemException {
         opponent.die();
         collectTreasuresFrom(opponent);
+        for (Item item: opponent.getItems()) {
+            if(item != null) item.discard();
+        }
     }
 
     /**
@@ -1162,7 +1203,7 @@ public abstract class Entity implements ItemHolder {
      */
     @Override
     public String toString() {
-        return String.format("The %s %s%s:\n♥-%d/%d\n",
-                getClass().getSimpleName(), getName(), isDead()? "(Dead)": "", getHitPoints(), getMaxHitPoints());
+        return String.format("%s[%s]%s:\n♥-%d/%d\n",
+                getName(), getClass().getSimpleName(), isDead()? "(Dead)": "", getHitPoints(), getMaxHitPoints());
     }
 }

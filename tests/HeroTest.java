@@ -7,6 +7,7 @@ import rpg.exceptions.InvalidAnchorException;
 import rpg.exceptions.InvalidHolderException;
 
 import java.util.HashMap;
+import java.util.HashSet;
 
 public class HeroTest {
 
@@ -25,8 +26,8 @@ public class HeroTest {
             assertNull(hero1.getItemAt(Anchorpoint.LEFT_HAND));
             assertNull(hero1.getItemAt(Anchorpoint.RIGHT_HAND));
             assertNull(hero1.getItemAt(Anchorpoint.BACK));
-            assertEquals(Armor.class, hero1.getItemAt(Anchorpoint.BODY).getClass());
-            assertEquals(Purse.class, hero1.getItemAt(Anchorpoint.BELT).getClass());
+            assertTrue(hero1.getItemAt(Anchorpoint.BODY) instanceof Armor);
+            assertTrue(hero1.getItemAt(Anchorpoint.BELT) instanceof Purse);
             assertEquals(hero1.getDefaultProtection(), hero1.getBaseProtection());
             assertEquals(100, hero1.getMaxHitPoints());
             assertEquals(Entity.getFirstLowerPrime(100), hero1.getHitPoints());
@@ -68,18 +69,18 @@ public class HeroTest {
             backpack = new Backpack(10.00, 10,  15);
             brokenBackpack = new Backpack(10.00, 10,  15);
 
-            aliveHero = new Hero("Alive", 100, 97, new HashMap<Anchorpoint, Item>(){{
-                put(Anchorpoint.BELT, purse);
-                put(Anchorpoint.LEFT_HAND, weapon);
-                put(Anchorpoint.BODY, armor);
-                put(Anchorpoint.BACK, backpack);
+            aliveHero = new Hero("Alive", 100, 97, new HashSet<>(){{
+                add(purse);
+                add(weapon);
+                add(armor);
+                add(backpack);
             }}, 50);
 
-            deadHero = new Hero("Alive", 100, 97, new HashMap<Anchorpoint, Item>(){{
-                put(Anchorpoint.BELT, brokenPurse);
-                put(Anchorpoint.LEFT_HAND, brokenWeapon);
-                put(Anchorpoint.BODY, brokenArmor);
-                put(Anchorpoint.BACK, brokenBackpack);
+            deadHero = new Hero("Alive", 100, 97, new HashSet<>(){{
+                add(brokenPurse);
+                add(brokenWeapon);
+                add(brokenArmor);
+                add(brokenBackpack);
             }}, 50);
             brokenPurse.discard();
             brokenWeapon.discard();

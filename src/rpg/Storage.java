@@ -18,27 +18,6 @@ import java.util.Random;
 public abstract class Storage extends Item {
 
     /**
-     * Initializes this Storage with the given id, weight, value, holder and capacity
-     *
-     * @param   id
-     *          The given id
-     * @param   weight
-     *          The given weight
-     * @param   value
-     *          The given value
-     * @param   holder
-     *          The given holder
-     *
-     * @effect  Initializes this Storage with the given id, weight, value and holder.
-     *          | super(id, weight, value, holder)
-     */
-    @Raw
-    protected Storage(long id, double weight, int value, ItemHolder holder)
-            throws InvalidHolderException, InvalidAnchorException {
-        super(id, weight, value, holder);
-    }
-
-    /**
      * Initializes this storage with the given id, weight and value
      *
      * @param   id

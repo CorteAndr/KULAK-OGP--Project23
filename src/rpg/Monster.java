@@ -39,24 +39,20 @@ public class Monster extends Entity {
      * @param   protection
      *          The protection of the new monster
      *
-     * @effect  Initializes this monster with the given name, maximum hit points, actual hit points and protection
-     *          | super(name, maxHitPoints, hitPoints, protection)
+     * @effect  Initializes this monster with the given name, maximum hit points, actual hit points, anchors
+     *          and protection
+     *          | super(name, maxHitPoints, hitPoints, anchors, protection)
      * @effect  The anchors of this monster are set to the given anchors
      *          | setAnchors(anchors)
-     * @post    The capacity of this new monster is set to the load of its anchors
-     *          | new.getCapacity() == getLoad()
+     * @post    The capacity of this new monster is set to the given capacity.
+     *          | new.getCapacity() == capacity
      */
     @Raw
-    public Monster(String name, int maxHitPoints, int hitPoints, Map<Anchorpoint, Item> anchors, int protection, int damage)
-            throws InvalidAnchorException, InvalidHolderException {
-        super(name, maxHitPoints, hitPoints, protection);
+    public Monster(String name, int maxHitPoints, int hitPoints, Collection<Anchorpoint> anchors, int protection, int damage)
+            throws IllegalArgumentException, InvalidHolderException {
+        super(name, maxHitPoints, hitPoints, anchors, protection);
         setDamage(damage);
-        double capacity = 0;
-        for (Item item : anchors.values()) {
-            if (item != null) capacity += item.getWeight();
-        }
-        this.capacity = capacity;
-        setAnchors(anchors);
+        this.capacity = (new Random()).nextInt(10, 151);
     }
 
     /**
@@ -71,23 +67,21 @@ public class Monster extends Entity {
      * @param   damage
      *          The damage of the new monster
      *
-     * @effect  Initializes this new monster with the given name, maximum hit points and protection
-     *          | super(name, maxHitPoints, protection)
+     * @effect  Initializes this new monster with the given name, maximum hit points and protection and a random
+     *          amount of anchors.
+     *          | super(name, maxHitPoints, getRandomAnchors(), protection)
      * @effect  The damage of this new monster is set to the given damage
      *          | setDamage(damage)
-     * @effect  The anchors of this new monster are set to the randomly generated anchors
-     *          | setAnchors(getRandomAnchors())
-     * @post    The capacity of this monster is set to 10.00 (kg) multiplied by the number of anchors
-     *          this monster has
-     *          | new.getCapacity() == 10.00 * getAnchorsPoints().size();
+     * @post    The capacity of this new Monster is set to a random integer between 10 and 150
+     *          | new.getCapacity() >= 10 && new.getCapacity() <= 150
      */
     @Raw
     public Monster(String name, int maxHitPoints, int protection, int damage)
-            throws InvalidAnchorException, InvalidHolderException, BrokenItemException {
-        super(name, maxHitPoints, protection);
+            throws BrokenItemException {
+        super(name, maxHitPoints, getRandomAnchors(), protection);
         setDamage(damage);
-        setAnchors(getRandomAnchors());
-        this.capacity = 10.00 * getAnchorPoints().size();
+        pickupItems(getRandomItemsFor(getAnchorPoints()));
+        this.capacity = getLoad();
     }
 
     /**
@@ -105,48 +99,50 @@ public class Monster extends Entity {
      * @param   items
      *          The items to allocate
      *
-     * @effect  Initializes this new Monster with the given name, maximum hit points and protection.
+     * @effect  Initializes this new Monster with the given name, maximum hit points and protection alongside the
+     *          given items and anchors that can hold all those items.
      *          | super(name, maxHitPoints, protection)
      * @effect  The damage of this new Monster is set to the given damage
      *          | setDamage(damage)
-     * @effect  The anchors are set to the anchors which contains the most possible of the given items
-     *          | setAnchors(getInitializedAnchors(items))
      * @post    The capacity of this new Monster is set load of the previously created anchors
      *          | new.getCapacity() == getLoad()
      */
     @Raw
-    public Monster(String name, int maxHitPoints, int protection, int damage, List<Item> items)
-            throws InvalidAnchorException, InvalidHolderException {
-        super(name, maxHitPoints, protection);
+    public Monster(String name, int maxHitPoints, int protection, int damage, Collection<Item> items)
+            throws IllegalArgumentException, InvalidHolderException {
+        super(name, maxHitPoints, Entity.getFirstLowerPrime(maxHitPoints), getAnchorsFor(items), items, protection);
         setDamage(damage);
-        setAnchors(getInitializedAnchors(items));
         this.capacity = getLoad();
     }
 
     /**
-     * Generates a map of anchors that contains the maximum number of the given items
+     * Generates a Collection of anchors that can hold all the given items
      *
      * @param   items
-     *          The items to allocate
-     * @return
-     *          | result == new HashMap<>() {{
-     *          | for each item in items:
-     *          |   for each anchor in AnchorPoints.values():
-     *          |       if( !result.containsKey(anchor) && anchor.canHoldItem(item) )
-     *          |       then put(anchor, item)
-     *          | }}
+     *          The items to find anchor-points for
+     *
+     * @return  A collection of anchor-points such that each item can be allocated
+     *          |
+     * @throws  IllegalArgumentException
+     *          The given items are not effective
+     *          | items == null
+     * @throws  IllegalArgumentException
+     *          There is no anchor that can hold a certain that hasn't already been used
+     *          | ?
      */
-    //TODO ?
-    @Raw
-    private static Map<Anchorpoint, Item> getInitializedAnchors(List<Item> items) {
-        Map<Anchorpoint, Item> result = new HashMap<>();
+    //TODO formal return/throw
+    private static Collection<Anchorpoint> getAnchorsFor(Collection<Item> items) throws IllegalArgumentException {
+        if(items == null) throw new IllegalArgumentException("The given items are not effective");
+        Collection<Anchorpoint> result = new HashSet<>();
         for(Item item: items) {
-            for(Anchorpoint anchor: Anchorpoint.values()) {
-                if(!result.containsKey(anchor) && anchor.canHoldItem(item)) {
-                    result.put(anchor, item);
-                    break;
+            boolean foundAnchor = false;
+            for (Anchorpoint anchor: Anchorpoint.values()) {
+                if(!result.contains(anchor) && anchor.canHoldItem(item)) {
+                    foundAnchor = true;
+                    result.add(anchor);
                 }
             }
+            if(!foundAnchor) throw new IllegalArgumentException("No new anchor found for " + item);
         }
         return result;
     }
@@ -154,24 +150,31 @@ public class Monster extends Entity {
     /**
      * Generates a random map of anchors with random items
      *
-     * @return  A map of random amount of anchors with no linked items
-     *          | result == Map<Anchorpoint, Item>().
+     * @return  A collection that contains a random amount of anchors
+     *          | for each anchor in result:
+     *          |   anchor instanceof Anchorpoint
      */
-    //TODO ?
-    private static Map<Anchorpoint, Item> getRandomAnchors()
-            throws BrokenItemException, InvalidAnchorException, InvalidHolderException {
-        Map<Anchorpoint, Item> result = new HashMap<>();
+    private static Collection<Anchorpoint> getRandomAnchors() {
+        Collection<Anchorpoint> result = new HashSet<>();
         for(Anchorpoint anchor: Anchorpoint.values()) {
             if ((new Random()).nextBoolean()) {
-                if (anchor.equals(Anchorpoint.BELT))
-                    result.put(anchor, new Purse(25.00, 100));
-                else {
-                    result.put(anchor, switch ((new Random()).nextInt(0, 3)) {
-                        case 0 -> new Weapon(4.00, 25);
-                        case 1 -> new Armor(-1, 16.00, 103, 13);
-                        case 2 -> new Backpack(10, 50, 40.50);
-                        default -> throw new IllegalStateException("Unexpected value");
-                    });
+                result.add(anchor);
+            }
+        }
+        return result;
+    }
+
+    private static Collection<Item> getRandomItemsFor(Collection<Anchorpoint> anchors) {
+        if(anchors == null) throw new IllegalArgumentException("The given anchors are not effective");
+        Collection<Item> result = new ArrayList<>();
+        for (Anchorpoint anchor: anchors) {
+            if (anchor == Anchorpoint.BELT) {
+                result.add(new Purse(0.1, 100));
+            } else {
+                switch ((new Random()).nextInt(0, 3)) {
+                    case 0 -> result.add(new Weapon(5.10, 14));
+                    case 1 -> result.add(new Armor(-1, 13.2, 50, 25));
+                    case 2 -> result.add(new Backpack(4.3, 20, 60));
                 }
             }
         }
@@ -301,14 +304,20 @@ public class Monster extends Entity {
     protected void collectTreasuresFrom(Entity opponent) throws IllegalArgumentException, InvalidAnchorException, InvalidHolderException {
         for (Anchorpoint anchorOpp: opponent.getAnchorPoints()) {
             Item item = opponent.getItemAt(anchorOpp);
-            if(canPickup(item)) {
-                for (Anchorpoint anchor: getAnchorPoints()) {
-                    Item curItem = getItemAt(anchor);
-                    if ((curItem == null || curItem.getShiny() < item.getShiny()) && canHaveItemAtAnchor(item, anchor)) {
-                        if(curItem != null) drop(curItem);
-                        opponent.transferItemAtAnchorTo(this, anchorOpp, anchor);
+            for (Anchorpoint anchor: getAnchorPoints()) {
+                Item curItem = getItemAt(anchor);
+                if(curItem != null) {
+                    double dWeight = item.getWeight() - curItem.getWeight();
+                    if(anchor.canHoldItem(item) && (dWeight <= 0 || canPickup(dWeight))) {
+                        drop(curItem);
+                        pickup(item, anchor);
+                        break;
                     }
+                } else if (canHaveItemAtAnchor(item, anchor)) {
+                    pickup(item, anchor);
+                    break;
                 }
+
             }
         }
     }

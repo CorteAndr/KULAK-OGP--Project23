@@ -54,40 +54,6 @@ public abstract class Item {
         }
     }
 
-    /**
-     * Initializes this new Item with an identification number, weight, value and holder
-     *
-     * @param   id
-     *          The identification number
-     * @param   weight
-     *          The weight of the item
-     * @param   value
-     *          The (base)value of the item
-     * @param   holder
-     *          The ItemHolder that owns this Item.
-     *
-     * @effect  Initializes this item with the given id, weight and value
-     *          | this(id, weight, value)
-     * @effect  The value of this item is set to the given value
-     *          | setValue(value)
-     * @effect  The holder of this item is set to the given holder
-     *          | setHolder(holder)
-     * @throws  InvalidHolderException
-     */
-    @Raw
-    public Item(long id, double weight, int value, ItemHolder holder)
-            throws IllegalArgumentException, InvalidAnchorException, InvalidHolderException {
-
-        this(id, weight, value);
-        if(!this.canHaveAsHolder(holder)) throw new InvalidHolderException(holder, this);
-        try {
-            holder.pickup(this);
-        } catch (Exception e) {
-            // Not sure yet
-            assert false;
-        }
-    }
-
     /*
         Destructors
      */
@@ -310,13 +276,9 @@ public abstract class Item {
      *          The new ItemHolder
      * @post    The holder of this item is set to the given holder
      *          | new.getHolder() == holder
-     * @throws  InvalidHolderException
-     *          If the given holder is not a valid holder
-     *          | !canHaveAsHolder(holder)
      */
     @Model
-    protected void setHolder(@Raw ItemHolder holder) throws InvalidHolderException {
-        if(!canHaveAsHolder(holder)) throw new InvalidHolderException(holder, this);
+    protected void setHolder(@Raw ItemHolder holder) {
         this.holder = holder;
     }
 

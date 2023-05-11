@@ -10,10 +10,7 @@ import rpg.exceptions.InvalidHolderException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-import java.util.Scanner;
+import java.util.*;
 
 /**
  * Class of Heroes
@@ -21,7 +18,7 @@ import java.util.Scanner;
  * @author  Corteville Andrew
  *
  * @invar   Each hero must have a valid intrinsic strength
- *          | isValidStrength(getStrength())
+ *          | canHaveAsStrength(getStrength())
  */
 public class Hero extends Entity {
 
@@ -39,9 +36,8 @@ public class Hero extends Entity {
      */
     @Raw
     public Hero(String name, double strength)
-            throws IllegalArgumentException, BrokenItemException, InvalidAnchorException, InvalidHolderException {
-        super(name, 100, getFirstLowerPrime(100), new HashMap<Anchorpoint, Item>(defaultAnchors), -1);
-        setStrength(strength);
+            throws IllegalArgumentException {
+        this(name, 100, getFirstLowerPrime(100), strength);
     }
 
     /**
@@ -53,31 +49,65 @@ public class Hero extends Entity {
      *          The maximum hit points for the new hero
      * @param   hitPoints
      *          The actual hit points of the new hero.
-     * @param   anchors
-     *          The anchors for the new hero
+     * @param   items
+     *          The items for the new hero
      * @param   strength
      *          The strength for the new hero
      *
-     * @effect  Initializes this hero with the given name, maximum hit points
-     *          | super(name, maxHitPoints, hitPoint)
+     * @effect  Initializes this hero with the given name, maximum hit points, actual hit points and items alongside
+     *          The default anchors and protection of a Hero
+     *          | super(name, maxHitPoints, hitPoint, defaultAnchors, items, baseProtection)
      * @effect  The strength of this hero is set to the given strength
      *          | setStrength(strength)
-     * @effect  The anchors of this hero are set to the initialized version of the given anchors
-     *          | setAnchors(getInitializedAnchors(anchors))
      */
     @Raw
-    public Hero(String name, int maxHitPoints, int hitPoints, Map<Anchorpoint, Item> anchors, double strength)
+    public Hero(String name, int maxHitPoints, int hitPoints, Collection<Item> items, double strength)
             throws IllegalArgumentException {
-        super(name, maxHitPoints, hitPoints);
+        super(name, maxHitPoints, hitPoints, defaultAnchors, getInitializedItems(items), baseProtection);
         setStrength(strength);
-        try {
-            setAnchors(getInitializedAnchors(anchors));
-        } catch (Exception e) {
-            // Should not happen
-            assert false;
-        }
     }
 
+    /**
+     * Initializes this hero with the given name, maximum hit points, actual hit points and strength
+     *
+     * @param   name
+     *          The name for the new Hero
+     * @param   maxHitPoints
+     *          The maximum hit points of the new Hero
+     * @param   hitPoints
+     *          The actual hit points of the new Hero
+     * @param   strength
+     *          The strength of the new Hero
+     *
+     * @effect  Initializes this hero with the given name, maximum hit points and actual hit points
+     *          | super(name, maxHitPoints, hitPoints)
+     * @effect  The strength of this Hero is set to the given strength
+     *          | setStrength(strength)
+     */
+    @Raw
+    public Hero(String name, int maxHitPoints, int hitPoints, double strength) throws IllegalArgumentException {
+        super(name, maxHitPoints, hitPoints, defaultAnchors, getInitializedItems(new HashSet<>()), baseProtection);
+        setStrength(strength);
+    }
+
+    /**
+     * Returns an initialized collection of items
+     *
+     * @param   items
+     *          The items to base the initialized items on
+     *
+     * @return  A collection of items that contains all the given items and definitely includes an Armor and Purse
+     *          | result.containsAll(items) &&
+     *          | result.stream().anyMatch(Armor.class::isInstance) &&
+     *          | result.stream().anyMatch(Purse.class::isInstance)
+     */
+    private static Collection<Item> getInitializedItems(Collection<Item> items) {
+        Collection<Item> result = new HashSet<>(items);
+        if(result.stream().noneMatch(Armor.class::isInstance)) result.add(new Armor(-1, 7.20, 130, 30));
+        if(result.stream().noneMatch(Purse.class::isInstance)) result.add(new Purse(20, 130));
+
+        return result;
+    }
 
     /*
         Strength (TOTAL)
@@ -99,7 +129,8 @@ public class Hero extends Entity {
 
     /**
      * Sets the intrinsic strength of the hero to the given strength with rounded to the precision of strength if the given
-     * strength is valid, otherwise the strength is set to the maximum
+     * strength is valid, otherwise the strength is set to the maximum of the default strength of a Hero and the
+     *
      */
     @Model
     @Raw
@@ -204,48 +235,16 @@ public class Hero extends Entity {
     /**
      * Variable referencing the default anchors of a Hero
      */
-    private static final HashMap<Anchorpoint, Item> defaultAnchors = new HashMap<>() {{
-        put(Anchorpoint.LEFT_HAND, null);
-        put(Anchorpoint.RIGHT_HAND, null);
-        put(Anchorpoint.BODY, null);
-        put(Anchorpoint.BACK, null);
-        put(Anchorpoint.BELT, null);
-    }};
+    private static final Collection<Anchorpoint> defaultAnchors = new HashSet<>() {
+        {
+            add(Anchorpoint.LEFT_HAND);
+            add(Anchorpoint.RIGHT_HAND);
+            add(Anchorpoint.BELT);
+            add(Anchorpoint.BODY);
+            add(Anchorpoint.BACK);
 
-    //TODO documentation
-    /**
-     * Returns the anchors initialized for a Hero using the given anchors
-     *
-     * @param   anchors
-     *          The anchors to base the resulting anchors on
-     *
-     * @pre
-     *
-     * @return  A map of anchors to items that has the default anchors of a hero and if the given anchors contains
-     *          such that
-     */
-    @Raw
-    private static Map<Anchorpoint, Item> getInitializedAnchors(Map<Anchorpoint, Item> anchors) {
-        Map<Anchorpoint, Item> result = new HashMap<>(defaultAnchors);
-        for(Map.Entry<Anchorpoint, Item> entry: result.entrySet()) {
-            if(anchors.containsKey(entry.getKey())) {
-                result.put(entry.getKey(), anchors.get(entry.getKey()));
-            }
         }
-        Random r = new Random();
-        try {
-            if (result.get(Anchorpoint.BODY) == null) {
-                result.put(Anchorpoint.BODY, new Armor(1L, 25.00, 50, r.nextInt(0, 40)+1));
-            }
-            if (result.get(Anchorpoint.BELT) == null) {
-                result.put(Anchorpoint.BELT, new Purse(1.00, r.nextInt(0, 100) + 1));
-            }
-        } catch (Exception e) {
-            // Should not happen
-            assert false;
-        }
-        return result;
-    }
+    };
 
     @Override
     public boolean hasProperAnchors() {
@@ -255,6 +254,11 @@ public class Hero extends Entity {
     /*
         Combat
      */
+
+    /**
+     * Variable referencing the base protection of a Hero
+     */
+    private static final int baseProtection = 10;
 
     /**
      * Checks if the given protection is a valid protection for a hero.
@@ -280,7 +284,7 @@ public class Hero extends Entity {
     @Override
     @Basic
     public int getDefaultProtection() {
-        return 10;
+        return baseProtection;
     }
 
     /**
@@ -350,26 +354,35 @@ public class Hero extends Entity {
         return 0;
     }
 
-    //TODO documentation
-    //TODO implementation using randomness
     /**
      * Allows the collection of treasures from the given opponent
      *
      * @param   opponent
      *          The opponent to collect treasures from
      *
-     * @effect
+     * @effect  Each item the opponent had is either dropped and added to this hero or discarded
+     *          | for each item in old.opponent.getItems():
+     *          |   (opponent.drop(item) && this.pickup(item)) || item.discard()
      * @throws  IllegalArgumentException
      *          If the given opponent is not dead
+     *          | !opponent.isDead()
      */
     @Override
+    @Raw
     protected void collectTreasuresFrom(Entity opponent)
             throws IllegalArgumentException, InvalidAnchorException, InvalidHolderException, BrokenItemException {
+        if(opponent == null) throw new IllegalArgumentException("The given opponent is not effective");
         if(!opponent.isDead()) throw new IllegalArgumentException("The given opponent is not dead");
-        if(!opponent.getAnchorPoints().isEmpty()) {
-            for(Anchorpoint anchorOpp: opponent.getAnchorPoints()) {
+        // Loop over all items the opponent has
+        for (Anchorpoint anchorOpp: opponent.getAnchorPoints()) {
+            Item item = opponent.getItemAt(anchorOpp);
+            // Every item that this hero is able to pickup is considered
+            if(item != null && canPickup(item)) {
+                // Check each anchor if the given item can be located at said anchor
                 for (Anchorpoint anchorOwn: getAnchorPoints()) {
-
+                    if(canHaveItemAtAnchor(item, anchorOwn)) {
+                        opponent.transferItemAtAnchorTo(this, anchorOpp, anchorOwn);
+                    }
                 }
             }
         }
@@ -424,7 +437,9 @@ public class Hero extends Entity {
     /**
      * Heals this hero
      *
-     * @effect  Sets the hit points of this hero tothe current hit points increased with a
+     * @effect  Sets the hit points of this hero to the current hit points increased with random percentage of its missing
+     *          health decreased to the nearest lower prime
+     *          | setHitPoints(getFirstLowerPrime(randomint(1...100) * (getMaxHitPoints() - getHitPoints()))/100))
      */
     public void heal() {
         setHitPoints(getFirstLowerPrime(

@@ -21,36 +21,18 @@ import java.util.*;
 public class Backpack extends Storage implements ItemHolder {
 
     /**
-     * Initializes this new Backpack with a currently available id, the given weight, value, holder and capacity.
+     * Initializes this backpack with the given weight, value and capacity alongside a generated id
      *
      * @param   weight
-     *          The given weight
+     *          The weight of the new backpack
      * @param   value
-     *          The given value
-     * @param   holder
-     *          The given holder
+     *          The value of the new backpack
      * @param   capacity
-     *          The given capacity
-     * @effect  Initializes this backpack with a generated ID, the given weight, value, holder and capacity
-     *          | super(getNextId(), weight, value, holder, capacity)
-     * @post    Initializes the contents of this backpack as an empty Hashmap
-     *          | new.getContents() == new HashMap<>()
+     *          The capacity of the new Backpack
+     *
+     * @effect
      */
-     protected Backpack(double weight, int value, ItemHolder holder, double capacity)
-             throws BrokenItemException, InvalidHolderException {
-
-         super(getNextId(), weight, value);
-         if(!isValidCapacity(capacity)) capacity = getDefaultCapacity();
-         this.capacity = capacity;
-
-     }
-
-    /**
-     * Initializes this backpack with the given
-     * @param weight
-     * @param value
-     * @param capacity
-     */
+    //TODO
      public Backpack(double weight, int value, double capacity) {
          super(getNextId(), weight, value);
          if(!isValidCapacity(capacity)) capacity = getDefaultCapacity();
@@ -516,12 +498,7 @@ public class Backpack extends Storage implements ItemHolder {
         if(!item.canHaveAsHolder(this)) throw new InvalidHolderException(this, item);
         if(!canPickup(item)) throw new IllegalArgumentException("Cannot pickup this Item");
         if(!item.liesOnGround()) throw new IllegalArgumentException("You can only take items that are on the ground");
-        try {
-            item.setHolder(this);
-        } catch (InvalidHolderException e) {
-            // Should not happen
-            assert false;
-        }
+        item.setHolder(this);
 
         if(getNbItemsWithId(item.getId()) == 0) contents.put(item.getId(), new ArrayList<>());
         contents.get(item.getId()).add(item);
