@@ -9,7 +9,6 @@ import rpg.exceptions.InvalidHolderException;
 
 import java.util.*;
 
-
 /**
  * A class of Backpacks
  *
@@ -30,9 +29,13 @@ public class Backpack extends Storage implements ItemHolder {
      * @param   capacity
      *          The capacity of the new Backpack
      *
-     * @effect
+     * @effect  Initializes this backpack with a generated id, the given weight and value
+     *          | super(getNextId(), weight, value)
+     * @post    The capacity is set to the given capacity or a default capacity if the given capacity was not valid
+     *          | if(isValidCapacity(capacity))
+     *          | then new.getCapacity() == capacity
+     *          | else new.getCapacity() == getDefaultCapacity()
      */
-    //TODO
      public Backpack(double weight, int value, double capacity) {
          super(getNextId(), weight, value);
          if(!isValidCapacity(capacity)) capacity = getDefaultCapacity();
@@ -63,10 +66,6 @@ public class Backpack extends Storage implements ItemHolder {
         return getNextId();
     }
 
-    @Override
-    public boolean canHaveAsId(long id) {
-        return true;
-    }
     /**
      * Returns the currently available id and increments it.
      * @post    currentId is incremented with 1.
@@ -254,9 +253,9 @@ public class Backpack extends Storage implements ItemHolder {
     @Override
     public boolean holdsItem(Item item) {
         ItemHolder itemHolder = item.getHolder();
-        while(itemHolder != null && itemHolder != this) {
+        if(itemHolder != null && itemHolder != this) {
             if (itemHolder.getClass() == Backpack.class) {
-                holdsItem((Backpack) item.getHolder());
+                return holdsItem((Backpack) item.getHolder());
             } else {
                 return false;
             }
@@ -270,17 +269,27 @@ public class Backpack extends Storage implements ItemHolder {
      * @param   type
      *          The type to search
      * @return  The number of items that are held directly or indirectly by this backpack of the given type.
-     *          | result == (
-     *          |
+     *          | result == sum({id in getStoredIds():
+     *          |   sum({item in getItemsWithId(id):
+     *          |       if (item != null)
+     *          |       then sum(
+     *          |           if(item instanceof type)
+     *          |           then 1
+     *          |           if(item instanceof Backpack)
+     *          |           then ((Backpack) item).getNbItemsOfTypeHeld(type)
+     *          |       )
+     *          |   })
+     *          |})
      */
-    //TODO documentation
     @Override
-    public int getNbOfItemsOfTypeHeld(Class<? extends Item> type) {
+    public int getNbItemsOfTypeHeld(Class<? extends Item> type) {
         int amount = 0;
         for (ArrayList<Item> items: contents.values()) {
             for (Item item: items) {
-                if (item.getClass() == type) amount++;
-                if (item.getClass() == Backpack.class) amount += ((Backpack) item).getNbOfItemsOfTypeHeld(type);
+                if (item != null) {
+                    if (item.getClass() == type) amount++;
+                    if (item instanceof Backpack) amount += ((Backpack) item).getNbItemsOfTypeHeld(type);
+                }
             }
         }
         return amount;
@@ -294,13 +303,13 @@ public class Backpack extends Storage implements ItemHolder {
      *          | result ==
      *          | for each key, mapping in contents:
      *          |   for each item in mapping:
-     *          |       (canPickUp(item) && item.getHolder() == this && item.getId() == key)
+     *          |       (item != null || canPickUp(item) && item.getHolder() == this && item.getId() == key)
      */
     @Raw
     public boolean hasProperContents() {
         for (Map.Entry<Long, ArrayList<Item>> entry: contents.entrySet()) {
             for(Item item: entry.getValue()) {
-                if (!canPickup(item) || item.getHolder() != this || item.getId() != entry.getKey()) return false;
+                if (item == null || !canPickup(item) || item.getHolder() != this || item.getId() != entry.getKey()) return false;
             }
         }
         return true;
@@ -310,14 +319,18 @@ public class Backpack extends Storage implements ItemHolder {
      * Returns the total weight of all items located in this backpack
      *
      * @return  The total weight of the equipment in the contents of this backpack
-     *          |
+     *          | result == sum({id in getStoredIds():
+     *          |   sum({item in getItemsWithId(id):
+     *          |       item.getWeight()
+     *          |   })
+     *          | })
      */
     @Override
     public double getLoad() {
         double load = 0.00;
-        for (Map.Entry<Long, ArrayList<Item>> entry: contents.entrySet()) {
-            for (Item eq: entry.getValue()) {
-                load += eq.getWeight();
+        for (long id: getStoredIds()) {
+            for (Item item: getItemsWithId(id)) {
+                load += item.getWeight();
             }
         }
         return load;
@@ -337,12 +350,17 @@ public class Backpack extends Storage implements ItemHolder {
 
     /**
      * @return  The cumulative value of all equipment located in this backpack
+     *          | result == sum({id in storedIds():
+     *          |   sum({item in getItemsWithId(id):
+     *          |       item.getValue()
+     *          |   })
+     *          | })
      */
     public int getLoadValue() {
         int value = 0;
-        for (Map.Entry<Long, ArrayList<Item>> entry: contents.entrySet()) {
-            for (Item eq: entry.getValue()) {
-                value += eq.getValue();
+        for (long id: getStoredIds()) {
+            for (Item item: getItemsWithId(id)) {
+                value += item.getValue();
             }
         }
         return value;
@@ -397,9 +415,9 @@ public class Backpack extends Storage implements ItemHolder {
      * @return  True if and only if the given item not broken and either already is inside this backpack or
      *          this backpack can pick up the weight of the given item, otherwise return false.
      *          | result ==
-     *          | ( !item.isBroken() ) &&
-     *          | ( (containsItem(item) ) ||
-     *          | ( canPickup(item.getWeight() ) )
+     *          | ( !item.isBroken() || item instanceof Purse) &&
+     *          | ( (holdsItemDirectly(item)) ||
+     *          | ( canPickup(item.getWeight() ))
      * @throws  IllegalArgumentException
      *          The given item is not effective
      *          | item == null
@@ -407,7 +425,7 @@ public class Backpack extends Storage implements ItemHolder {
     @Override
     public boolean canPickup(Item item) throws IllegalArgumentException {
         if(item == null) throw new IllegalArgumentException("The given item is not effective");
-        return (holdsItemDirectly(item) || canPickup(item.getWeight()));
+        return (!item.isBroken() || item instanceof Purse) && (holdsItemDirectly(item) || canPickup(item.getWeight()));
     }
 
     /**
@@ -474,14 +492,10 @@ public class Backpack extends Storage implements ItemHolder {
      * @param   item
      *          The item to pick up
      *
-     * @post    The item is added to the contents of this backpack
-     *          | new.getContents().get(item.getId()).contains(item)
+     * @post    The item backpack holds the given item directly.
+     *          | holdsItemDirectly(item)
      * @effect  The holder of the given item is set to this backpack
      *          | item.setHolder(this)
-     * @effect  If the given item already has an effective holder, then said holder drops this item
-     *          | if (item.getHolder() != null)
-     *          | then
-     *          | item.getHolder().drop(item)
      * @throws  IllegalArgumentException
      *          The given item is not effective
      *          | item == null
@@ -498,11 +512,12 @@ public class Backpack extends Storage implements ItemHolder {
     @Override
     @Raw
     public void pickup(Item item)
-            throws IllegalArgumentException, BrokenItemException, InvalidHolderException {
+            throws IllegalArgumentException, InvalidHolderException {
         if(item == null) throw new IllegalArgumentException("The given item is not effective");
         if(!item.canHaveAsHolder(this)) throw new InvalidHolderException(this, item);
         if(!canPickup(item)) throw new IllegalArgumentException("Cannot pickup this Item");
         if(!item.liesOnGround()) throw new IllegalArgumentException("You can only take items that are on the ground");
+        if(holdsItemDirectly(item)) throw new IllegalArgumentException("This item is already held by this backpack");
         item.setHolder(this);
 
         if(getNbItemsWithId(item.getId()) == 0) contents.put(item.getId(), new ArrayList<>());

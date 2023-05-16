@@ -62,7 +62,7 @@ public interface ItemHolder {
      * @return  The number of items held (directly or indirectly) of the given type.
      *          | ?
      */
-    int getNbOfItemsOfTypeHeld(Class<? extends Item> type);
+    int getNbItemsOfTypeHeld(Class<? extends Item> type);
 
     /**
      * Drops the item on the ground.
@@ -88,15 +88,11 @@ public interface ItemHolder {
      *
      * @throws  IllegalArgumentException    [CAN]
      *          | ? true
-     * @throws  BrokenItemException         [CAN]
-     *          | ? true
      * @throws  InvalidHolderException      [CAN]
-     *          | ? true
-     * @throws  InvalidAnchorException      [CAN]
      *          | ? true
      * @throws  DeadEntityException         [CAN]
      *          | ? true
      */
-    void pickup(Item item) throws IllegalArgumentException, BrokenItemException,
-            InvalidHolderException, InvalidAnchorException, DeadEntityException;
+    void pickup(Item item) throws IllegalArgumentException,
+            InvalidHolderException, DeadEntityException;
 }

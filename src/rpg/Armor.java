@@ -5,10 +5,11 @@ import be.kuleuven.cs.som.annotate.Immutable;
 import be.kuleuven.cs.som.annotate.Model;
 import be.kuleuven.cs.som.annotate.Raw;
 import rpg.exceptions.BrokenItemException;
-import rpg.exceptions.InvalidAnchorException;
-import rpg.exceptions.InvalidHolderException;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A class of Armors
@@ -25,51 +26,6 @@ import java.util.*;
 public class Armor extends Item implements Degradable {
 
     /**
-     * Initializes this Armor with the given id, weight, value,  holder and maximum protection.
-     *
-     * @param   id
-     *          The given identification
-     * @param   weight
-     *          The given weight
-     * @param   value
-     *          The given value
-     * @param   holder
-     *          The given holder
-     * @param   maxProtection
-     *          The given maximum protection
-     *
-     * @effect  This armor is initialized with the given id if valid otherwise uses a generated id, weight, value and holder.
-     *          | super(id, weight, value, holder)
-     * @post    The identification of this Armor is added to the used ids
-     *          | new.usedIds.contains(getId())
-     * @post    The maximum protection is set to the given protection, if valid otherwise it is set to
-     *          the default maximum protection.
-     *          | if(isValidMaxProtection(maxProtection))
-     *          | then
-     *          | new.getMaxProtection() == maxProtection
-     *          | else
-     *          | new.getMaxProtection() == getDefaultMaxProtection()
-     * @effect  The effective protection of this armor is set the maximum protection of this Armor;
-     *          | setEffectiveProtection(getMaxProtection())
-     */
-    @Raw
-    public Armor(long id, double weight, int value, ItemHolder holder, int maxProtection)
-            throws InvalidHolderException, InvalidAnchorException {
-            this(id, weight, value, maxProtection);
-            if(holder != null) {
-                if(!canHaveAsHolder(holder)) throw new InvalidHolderException(holder, this);
-                if(!holder.canPickup(this)) throw new IllegalArgumentException(holder + " cannot pick up this " + this);
-                try {
-                    holder.pickup(this);
-                } catch (Exception e) {
-                    // Should not happen
-                    assert false;
-                }
-            }
-
-    }
-
-    /**
      * Initializes this new armor with the given id, weight, value and maximum protection
      *
      * @param   id
@@ -84,7 +40,7 @@ public class Armor extends Item implements Degradable {
      * @effect  Initializes armor with the given identification or a generated one if the given one was not valid,
      *          the given weight and value
      *          | super(isValidNewId(id)? id: getNextId(), weight, value)
-     * @post    The identification of this new Armor is added to the set of already used ids
+     * @post    The identification of this new Armor is added to the collection of already used ids
      *          | new.usedIds.contains(getId())
      * @post    If the given maximum protection is valid the maximum protection this Armor offers is set to the given
      *          protection, otherwise it is set to a default maximum protection
@@ -102,10 +58,38 @@ public class Armor extends Item implements Degradable {
         setEffectiveProtection(getMaxProtection());
     }
 
+    /**
+     * Initializes this new armor with the given id, weight, value and its maximum protection set to the maximum protection
+     * associated with the given armor type.
+     *
+     * @param   id
+     *          The identification of the new Armor
+     * @param   weight
+     *          The weight of the new Armor
+     * @param   value
+     *          The value of the new Armor
+     * @param   armorType
+     *          The given armor type
+     *
+     * @effect  Initializes this armor with the given id or a generated id if the given id is not valid, given weight and
+     *          value
+     *          | super(isValidNewId(id)? id: getNextId(), weight, value)
+     * @post    The identification of this new Armor is added to the collection of already used ids
+     *          | new.usedIds.contains(getId())
+     * @post    The maximum protection of this new Armor is set to the maximum protection associated with the given
+     *          armor type
+     *          | new.getMaxProtection() == getArmorTypes().get(armorType)
+     * @effect  The effective protection of this new Armor is set to its maximum protection
+     *          | setEffectiveProtection(getMaxProtection())
+     *
+     * @throws  IllegalArgumentException
+     *          The given armor type is not defined
+     *          | !getArmorTypes().containsKey(armorType)
+     */
     public Armor(long id, double weight, int value, String armorType) throws IllegalArgumentException {
         super(isValidNewId(id)? id: getNextId(), weight, value);
+        if(!getArmorTypes().containsKey(armorType)) throw new IllegalArgumentException("The given armor type is not defined");
         usedIds.add(getId());
-        if(!armorTypes.containsKey(armorType)) throw new IllegalArgumentException("The given armor type is not defined");
         this.maxProtection = getArmorTypes().get(armorType);
         setEffectiveProtection(getMaxProtection());
     }
@@ -168,7 +152,8 @@ public class Armor extends Item implements Degradable {
      * @param   number
      *          The number to check
      * @return  True if and only if the given number is prime.
-     *          |
+     *          | for each i in 2..(number-1):
+     *          |   number % i != 0
      */
     private static boolean isPrime(long number) {
         if (number <= 1) return false;

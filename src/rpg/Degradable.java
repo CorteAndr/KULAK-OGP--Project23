@@ -14,6 +14,9 @@ public interface Degradable {
      *
      * @param   amount
      *          The amount of degradation
+     *
+     * @throws  BrokenItemException
+     *          | ? true
      */
     void degrade(int amount) throws BrokenItemException;
 
@@ -22,6 +25,9 @@ public interface Degradable {
      *
      * @param   amount
      *          The amount that should be repaired
+     *
+     * @throws  BrokenItemException
+     *          | ? true
      */
     void repair(int amount) throws BrokenItemException;
 

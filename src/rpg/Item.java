@@ -72,8 +72,6 @@ public abstract class Item {
     /**
      * Destroys this item indefinitely.
      *
-     * @effect  The current holder drops this item on the ground
-     *          | getHolder().dropItem(this)
      * @post    Sets the isBroken attribute of this item to true
      *          | new.IsBroken() == true
      * @throws BrokenItemException
@@ -237,6 +235,7 @@ public abstract class Item {
      * Returns the holder of this item.
      */
     @Basic
+    @Raw
     public ItemHolder getHolder() {
         return holder;
     }

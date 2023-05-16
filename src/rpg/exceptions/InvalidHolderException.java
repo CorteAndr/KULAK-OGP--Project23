@@ -8,7 +8,7 @@ import rpg.ItemHolder;
 import java.io.Serial;
 
 /**
- * An exception class that is thrown when an item is not allowed to be added to a item holder
+ * An exception class that is thrown when an item is not allowed to be added to an item holder
  *
  * @author  Corteville Andrew
  */

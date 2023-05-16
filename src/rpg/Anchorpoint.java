@@ -31,7 +31,7 @@ public enum Anchorpoint {
      *          | new.getName() == name
      * @throws  IllegalArgumentException
      *          The given name is not valid
-     *          | !isValidName(name)
+     *          | !Anchorpoint.isValidName(name)
      */
     Anchorpoint(String name) {
         if(!isValidName(name)) throw new IllegalArgumentException("The given name is not valid");
@@ -44,7 +44,7 @@ public enum Anchorpoint {
     private String name = null;
 
     /**
-     *  Returns the name of this anchor point
+     *  @return  The name of this anchor point
      */
     public String getName() {
         return name;

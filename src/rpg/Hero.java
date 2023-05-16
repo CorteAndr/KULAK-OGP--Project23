@@ -32,7 +32,7 @@ public class Hero extends Entity {
      *
      * @effect  Initializes this new hero with the given name and strength and with the default hero anchors and
      *          maximum hit points set to 100 and actual hit points equal to the nearest lower prime of 100.
-     *          | super(name, 100, getFirstLowerPrime(100))
+     *          | this(name, 100, getFirstLowerPrime(100), strength)
      */
     @Raw
     public Hero(String name, double strength)
@@ -79,8 +79,9 @@ public class Hero extends Entity {
      * @param   strength
      *          The strength of the new Hero
      *
-     * @effect  Initializes this hero with the given name, maximum hit points and actual hit points
-     *          | super(name, maxHitPoints, hitPoints)
+     * @effect  Initializes this hero with the given name, maximum hit points and actual hit points, default anchors,
+     *          initialized items and the base protection of a Hero
+     *          | super(name, maxHitPoints, hitPoints, defaultAnchors, getInitializedItems(new HashSet<>(), baseProtection)
      * @effect  The strength of this Hero is set to the given strength
      *          | setStrength(strength)
      */
@@ -168,13 +169,13 @@ public class Hero extends Entity {
      *          The factor with which to divide the strength of this Hero
      *
      * @effect  Sets the strength of this Hero to the old strength divided by the given factor and rounded to 2
-     *          decimal places, if the given factor is strictly positive.
-     *          | if (factor > 0)
+     *          decimal places, if the given factor is strictly positive and the new strength is valid.
+     *          | if (factor > 0 && canHaveAsStrength(strength/factor)
      *          | setStrength(BigDecimal.valueOf(getStrength()).divide(BigDecimal.valueOf(factor), RoundingMode.HALF_UP)
      *                     .setScale(strengthPrecision, RoundingMode.HALF_UP).doubleValue())
      */
     public void divideStrength(int factor) {
-        if(factor > 0) {
+        if(factor > 0 && canHaveAsStrength(strength/factor)) {
             setStrength(BigDecimal.valueOf(getStrength()).divide(BigDecimal.valueOf(factor), RoundingMode.HALF_UP)
                     .setScale(strengthPrecision, RoundingMode.HALF_UP).doubleValue());
         }
@@ -226,7 +227,7 @@ public class Hero extends Entity {
      * @param   strength
      *          The given strength
      * @return  The capacity calculated from the strength
-     *          | result == (20 * strength)
+     *          | result == (capacityStrengthFactor * strength)
      */
     private static double getCapacityFromStrength(double strength) {
         return capacityStrengthFactor*strength;
@@ -246,9 +247,18 @@ public class Hero extends Entity {
         }
     };
 
+    /**
+     * Checks if this Hero has proper anchors
+     *
+     * @return  True if and only if this Hero hsa proper anchors as an entity and holds no more than 2 Armors
+     *          | result == (
+     *          |   super.hasProperAnchors() &&
+     *          |   getNbItemsOfTypeHeld(Armor.class) <= 2)
+     *          | )
+     */
     @Override
     public boolean hasProperAnchors() {
-        return super.hasProperAnchors() && getNbOfItemsOfTypeHeld(Armor.class) <= 2;
+        return super.hasProperAnchors() && getNbItemsOfTypeHeld(Armor.class) <= 2;
     }
 
     /*
@@ -299,7 +309,8 @@ public class Hero extends Entity {
 
     /**
      * Returns the damage this Hero deals to an opponent
-     * @return The damage this hero deals to an opponent based
+     * @return  The damage this hero deals to an opponent
+     *          | result == (Math.max(0, (int)((getStrength() + getDamageFromWeapons()-10)/2)))
      */
     @Override
     public int getDamage() {
@@ -310,12 +321,13 @@ public class Hero extends Entity {
      * Returns the damage this hero has because of its equipped weapons
      *
      * @return  The damage of the non-broken weapon(s) in the left- and/or right-hand of this hero.
-     *          | result ==
+     *          | result == sum({
      *          |   0
      *          |   if (getItemAt(Anchorpoint.LEFT_HAND) instanceof Weapon)
-     *          |   then    + ((Weapon) getItemAt(Anchorpoint.LEFT_HAND)).getDamage()
+     *          |   then ((Weapon) getItemAt(Anchorpoint.LEFT_HAND)).getDamage()
      *          |   if (getItemAt(Anchorpoint.RIGHT_HAND) instanceof Weapon)
-     *          |   then    + ((Weapon) getItemAt(Anchorpoint.LEFT_HAND)).getDamage()
+     *          |   then ((Weapon) getItemAt(Anchorpoint.LEFT_HAND)).getDamage()
+     *          | })
      */
     private int getDamageFromWeapons() {
         Item leftHand = getItemAt( Anchorpoint.LEFT_HAND);
@@ -342,7 +354,7 @@ public class Hero extends Entity {
     /**
      * Returns this hero has due to Armor he is wearing.
      *
-     * @return  If this hero has an Armor on its back than return the effective protection of said Armor, otherwise
+     * @return  If this hero has an Armor on its body than return the effective protection of said Armor, otherwise
      *          return 0.
      *          | if(getItemAt(Anchorpoint.BODY) instanceof Armor)
      *          | then result == ((Armor) bodyItem).getEffectiveProtection();
@@ -360,17 +372,18 @@ public class Hero extends Entity {
      * @param   opponent
      *          The opponent to collect treasures from
      *
-     * @effect  Each item the opponent had is either dropped and added to this hero or discarded
+     * @effect  Each item the opponent is either dropped and added to this hero or nothing is still in the opponents
+     *          anchors.
      *          | for each item in old.opponent.getItems():
-     *          |   (opponent.drop(item) && this.pickup(item)) || item.discard()
+     *          |   (opponent.drop(item) && this.pickup(item)))
      * @throws  IllegalArgumentException
-     *          If the given opponent is not dead
+     *          The given opponent is not dead
      *          | !opponent.isDead()
      */
     @Override
     @Raw
     protected void collectTreasuresFrom(Entity opponent)
-            throws IllegalArgumentException, InvalidAnchorException, InvalidHolderException, BrokenItemException {
+            throws IllegalArgumentException, InvalidAnchorException, InvalidHolderException {
         if(opponent == null) throw new IllegalArgumentException("The given opponent is not effective");
         if(!opponent.isDead()) throw new IllegalArgumentException("The given opponent is not dead");
         // Loop over all items the opponent has
@@ -382,6 +395,7 @@ public class Hero extends Entity {
                 for (Anchorpoint anchorOwn: getAnchorPoints()) {
                     if(canHaveItemAtAnchor(item, anchorOwn)) {
                         opponent.transferItemAtAnchorTo(this, anchorOpp, anchorOwn);
+                        break; // Otherwise keeps iterating with an already allocated item
                     }
                 }
             }
@@ -439,7 +453,7 @@ public class Hero extends Entity {
      *
      * @effect  Sets the hit points of this hero to the current hit points increased with random percentage of its missing
      *          health decreased to the nearest lower prime
-     *          | setHitPoints(getFirstLowerPrime(randomint(1...100) * (getMaxHitPoints() - getHitPoints()))/100))
+     *          | setHitPoints(getFirstLowerPrime((randomint(0..100)+1) * (getMaxHitPoints() - getHitPoints()))/100))
      */
     public void heal() {
         setHitPoints(getFirstLowerPrime(
@@ -458,10 +472,14 @@ public class Hero extends Entity {
      *
      * @return  True if and only if the given item can be picked up as an entity and if the given item is an instance
      *          of Armor, this hero does not hold 2 or more Armors already.
+     *          | result == (
+     *          |   super.canPickup(item)
+     *          |   !(item instanceof Armor && getNbItemsOfTypeHeld(Armor.class) >= 2)
+     *          | )
      */
     @Override
     public boolean canPickup(Item item) {
-        return super.canPickup(item) && !(item instanceof Armor && getNbOfItemsOfTypeHeld(Armor.class) >= 2);
+        return super.canPickup(item) && !(item instanceof Armor && getNbItemsOfTypeHeld(Armor.class) >= 2);
     }
 
     /*

@@ -10,11 +10,11 @@ import rpg.exceptions.InvalidHolderException;
 import java.util.Random;
 
 public class Main {
-    public static void main(String[] args) throws InvalidHolderException, BrokenItemException, InvalidAnchorException, DeadEntityException {
+    public static void main(String[] args) throws InvalidHolderException, BrokenItemException, DeadEntityException {
         Hero hero = new Hero("Saver O'Humanity", 213, Entity.getFirstLowerPrime(213), 25.00);
         hero.pickup(new Weapon(13.00, 21));
 
-        Monster monster = new Monster("Calamity", 300, 20, 20);
+        Monster monster = new Monster("Calamity", 250, 20, 15);
 
         System.out.printf("%s its possessions are worth %d\n\n",hero,hero.getValueHeld());
         System.out.printf("%s its possessions are worth %d\n\n", monster, monster.getValueHeld());

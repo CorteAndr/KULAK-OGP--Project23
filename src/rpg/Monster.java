@@ -2,6 +2,7 @@ package rpg;
 
 import be.kuleuven.cs.som.annotate.Basic;
 import be.kuleuven.cs.som.annotate.Immutable;
+import be.kuleuven.cs.som.annotate.Model;
 import be.kuleuven.cs.som.annotate.Raw;
 import rpg.exceptions.BrokenItemException;
 import rpg.exceptions.DeadEntityException;
@@ -42,17 +43,16 @@ public class Monster extends Entity {
      * @effect  Initializes this monster with the given name, maximum hit points, actual hit points, anchors
      *          and protection
      *          | super(name, maxHitPoints, hitPoints, anchors, protection)
-     * @effect  The anchors of this monster are set to the given anchors
-     *          | setAnchors(anchors)
-     * @post    The capacity of this new monster is set to the given capacity.
-     *          | new.getCapacity() == capacity
+     * @post    The capacity of this new monster is set to the number of given anchor times a random integer between
+     *          5 and 25
+     *          | new.getCapacity() == anchors.size() * randomint(5, 25)
      */
     @Raw
     public Monster(String name, int maxHitPoints, int hitPoints, Collection<Anchorpoint> anchors, int protection, int damage)
             throws IllegalArgumentException {
         super(name, maxHitPoints, hitPoints, anchors, protection);
         setDamage(damage);
-        this.capacity = (new Random()).nextInt(10, 151);
+        this.capacity = (new Random()).nextInt(5, 25) * anchors.size();
     }
 
     /**
@@ -72,8 +72,10 @@ public class Monster extends Entity {
      *          | super(name, maxHitPoints, getRandomAnchors(), protection)
      * @effect  The damage of this new monster is set to the given damage
      *          | setDamage(damage)
-     * @post    The capacity of this new Monster is set to a random integer between 10 and 150
-     *          | new.getCapacity() >= 10 && new.getCapacity() <= 150
+     * @effect  This monster picks up random items for each of its anchors
+     *          | pickupItems(getRandomItemsFor(getAnchorPoints()))
+     * @post    The capacity of this monster is set to the load of its anchors
+     *          | new.getCapacity() == getLoad()
      */
     @Raw
     public Monster(String name, int maxHitPoints, int protection, int damage)
@@ -101,7 +103,7 @@ public class Monster extends Entity {
      *
      * @effect  Initializes this new Monster with the given name, maximum hit points and protection alongside the
      *          given items and anchors that can hold all those items.
-     *          | super(name, maxHitPoints, protection)
+     *          | super(name, maxHitPoints, getAnchorsFor(items), items, protection)
      * @effect  The damage of this new Monster is set to the given damage
      *          | setDamage(damage)
      * @post    The capacity of this new Monster is set load of the previously created anchors
@@ -110,7 +112,7 @@ public class Monster extends Entity {
     @Raw
     public Monster(String name, int maxHitPoints, int protection, int damage, Collection<Item> items)
             throws IllegalArgumentException {
-        super(name, maxHitPoints, Entity.getFirstLowerPrime(maxHitPoints), getAnchorsFor(items), items, protection);
+        super(name, maxHitPoints, getAnchorsFor(items), items, protection);
         setDamage(damage);
         this.capacity = getLoad();
     }
@@ -122,15 +124,16 @@ public class Monster extends Entity {
      *          The items to find anchor-points for
      *
      * @return  A collection of anchor-points such that each item can be allocated
+     *          | for each anchor in result:
      *          |
      * @throws  IllegalArgumentException
      *          The given items are not effective
      *          | items == null
      * @throws  IllegalArgumentException
      *          There is no anchor that can hold a certain that hasn't already been used
-     *          | ?
+     *
      */
-    //TODO formal return/throw
+    //TODO formal return/throw (unique anchor)
     private static Collection<Anchorpoint> getAnchorsFor(Collection<Item> items) throws IllegalArgumentException {
         if(items == null) throw new IllegalArgumentException("The given items are not effective");
         Collection<Anchorpoint> result = new HashSet<>();
@@ -140,6 +143,7 @@ public class Monster extends Entity {
                 if(!result.contains(anchor) && anchor.canHoldItem(item)) {
                     foundAnchor = true;
                     result.add(anchor);
+                    break;
                 }
             }
             if(!foundAnchor) throw new IllegalArgumentException("No new anchor found for " + item);
@@ -206,7 +210,9 @@ public class Monster extends Entity {
     /**
      * Returns the rolled hit value to compare to an opponents protection
      *
-     * @return  A randomly generated between
+     * @return  A randomly generated between 0 and 100 or its actual hit points if its actual hit points are less than
+     *          100.
+     *          | result == randomint(0, Math.min(100, getHitPoints()) +1)
      */
     @Override
     protected int getHitChance() {
@@ -217,6 +223,11 @@ public class Monster extends Entity {
      * Variable referencing the damage of this entity.
      */
     private int damage = 0;
+
+    /**
+     * Variable referencing the highest possible damage
+     */
+    private static final int maxDamage = 100;
 
     /**
      * Returns the damage of this monster
@@ -233,6 +244,7 @@ public class Monster extends Entity {
      *          | isValidDamage(damage)
      *
      * @post    The damage of this monster is set to the given damage
+     *          | new.getDamage() == damage
      */
     @Raw
     private void setDamage(int damage) {
@@ -245,11 +257,11 @@ public class Monster extends Entity {
      * @param   damage
      *          The damage to check
      *
-     * @return  True if and only if the given damage is valid for a monster/weapon
-     *          | result == Weapon.isValidDamage(damage)
+     * @return  True if and only if the given damage is valid for a monster
+     *          | result == (0 < damage && damage < maxDamage) && (damage % 7 == 0)
      */
     public static boolean isValidDamage(int damage) {
-        return Weapon.isValidDamage(damage);
+        return  (0 < damage  && damage <= maxDamage) && (damage % 7 == 0);
     }
 
     /**
@@ -279,7 +291,16 @@ public class Monster extends Entity {
      *
      * @param   protection
      *          The new protection of the given
+     *
+     * @post    The effective protection of this Monster is set to the given protection
+     *          | new.getProtection() == protection
+     *
+     * @throws  IllegalArgumentException
+     *          The given protection is not a valid effective protection for this monster
+     *          | !canHaveAsEffectiveProtection(protection)
      */
+    @Model
+    @Raw
     private void setEffectiveProtection(int protection) {
         if(!canHaveAsEffectiveProtection(protection))
             throw new IllegalArgumentException(this + " cannot have " + protection + " as protection.");
@@ -370,12 +391,12 @@ public class Monster extends Entity {
      * @param   name
      *          The name to check
      *
-     * @return  True if and only if the given name begins with a capital letter and only contains the allowed characters
-     *          (letters, apostrophes, spaces and the allowed special characters of a monster)
-     *          | result == (name.matches("^[A-Z][a-zA-Z' specialCharacters]*"))
+     * @return  True if and only if the given name is a valid name for an Entity and only consists out of letters,
+     *          apostrophes, spaces  and the allowed special characters of Monsters
+     *          | result == (super.canHaveAsName(name) && name.matches(([a-zA-Z' specialCharacters])*))
      */
     @Override
     public boolean canHaveAsName(String name) {
-        return name.matches(String.format("^[A-Z][a-zA-Z' %s]*", getSpecialCharacters()));
+        return super.canHaveAsName(name) && name.matches(String.format("([a-zA-Z' %s])*", getSpecialCharacters()));
     }
 }

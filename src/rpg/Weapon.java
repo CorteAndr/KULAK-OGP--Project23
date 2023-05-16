@@ -4,8 +4,6 @@ import be.kuleuven.cs.som.annotate.Basic;
 import be.kuleuven.cs.som.annotate.Model;
 import be.kuleuven.cs.som.annotate.Raw;
 import rpg.exceptions.BrokenItemException;
-import rpg.exceptions.InvalidAnchorException;
-import rpg.exceptions.InvalidHolderException;
 
 import java.util.Random;
 
@@ -138,6 +136,11 @@ public class Weapon extends Item implements Degradable {
     private int damage;
 
     /**
+     * Variable referencing the maximum damage
+     */
+    private static final int maxDamage = 100;
+
+    /**
      * Sets this weapon's damage to the given damage
      *
      * @param   damage
@@ -219,13 +222,6 @@ public class Weapon extends Item implements Degradable {
     }
 
     /**
-     * @return  The maximum damage a weapon can have.
-     */
-    private static int getMaxDamage() {
-        return 100;
-    }
-
-    /**
      * Checks if the given damage is valid for a weapon
      *
      * @param   damage
@@ -238,9 +234,13 @@ public class Weapon extends Item implements Degradable {
      *          | (damage % 7 == 0)
      */
     public static boolean isValidDamage(int damage) {
-        return ((1 <= damage) && (damage <= getMaxDamage()) && (damage % 7 == 0));
+        return ((1 <= damage) && (damage <= maxDamage) && (damage % 7 == 0));
     }
 
+    /**
+     * Variable referencing the value associated with 1 damage
+     */
+    private static final int valueDamageFactor = 2;
 
     /**
      * Returns the value associated with the given damage
@@ -248,10 +248,10 @@ public class Weapon extends Item implements Degradable {
      * @param   damage
      *          The given damage
      * @return  2 times the given damage
-     *          | result == (2 * damage)
+     *          | result == (valueDamageFactor * damage)
      */
     public static int getValueFromDamage(int damage) {
-        return 2 * damage;
+        return valueDamageFactor * damage;
     }
 
     /**
