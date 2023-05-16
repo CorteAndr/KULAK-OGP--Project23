@@ -123,8 +123,8 @@ public class Monster extends Entity {
      *          The items to find anchor-points for
      *
      * @return  A collection of anchor-points such that each item can be allocated
-     *          | for each anchor in result:
-     *          |
+     *          | for each item in items:
+     *          |   there exists an anchor in result such that anchor.canHoldItem(item)
      * @throws  IllegalArgumentException
      *          The given items are not effective
      *          | items == null
@@ -166,6 +166,19 @@ public class Monster extends Entity {
         return result;
     }
 
+    /**
+     * Generates random items for the given anchors
+     *
+     * @param   anchors
+     *          The anchors to create items for
+     * @return  A collection of items of the items such that each anchor in the given anchors has an item that can be
+     *          allocated to it
+     *          | itemCollection = new Arraylist<>()
+     *          | for each anchor in anchors:
+     *          |   if(anchor == Anchorpoint.BELT)
+     *          |   then itemCollection.add(new Purse(0.1, 100)
+     *          |   else switch(randomint(
+     */
     private static Collection<Item> getRandomItemsFor(Collection<Anchorpoint> anchors) {
         if(anchors == null) throw new IllegalArgumentException("The given anchors are not effective");
         Collection<Item> result = new ArrayList<>();
@@ -308,6 +321,7 @@ public class Monster extends Entity {
     /**
      * Returns the protection this monster has
      */
+    @Basic
     @Override
     public int getProtection() {
         return effectiveProtection;
@@ -319,9 +333,11 @@ public class Monster extends Entity {
      * @param   opponent
      *          The opponent to collect treasures from
      *
-     * @effect
+     * @post    Each item is added to this monster or is left in the hands of the opponent
+     *          | for each item in old.opponent.getItems():
+     *          |   (this.holdsItem(item) && item.getHolder() == this) ||
+     *          |   (opponent.holdsItem(item) && item.getHolder() == opponent)
      */
-    //TODO documentation
     @Override
     @Raw
     protected void collectTreasuresFrom(Entity opponent) throws IllegalArgumentException, InvalidAnchorException, InvalidHolderException {
@@ -336,7 +352,7 @@ public class Monster extends Entity {
                         pickup(item, anchor);
                         break;
                     }
-                } else if (canHaveItemAtAnchor(item, anchor)) {
+                } else if (canHaveItemAtAnchor(item, anchor) && canPickup(item)) {
                     pickup(item, anchor);
                     break;
                 }

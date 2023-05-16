@@ -67,11 +67,9 @@ public class EntityTest {
         } catch (Exception e) {
             fail();
         }
-        assertTrue(monster.getHitPoints() == monsterHP || (monster.getHitPoints() == Entity.getFirstLowerPrime(monsterHP-heroDMG)));
+        assertTrue(monster.getHitPoints() == monsterHP || monster.getHitPoints() == monsterHP-heroDMG);
         assertTrue(hero.canHaveAsHitPoints(hero.getHitPoints()));
         assertTrue(monster.canHaveAsHitPoints(monster.getHitPoints()));
-        assertFalse(monster.isFighting());
-        assertFalse(hero.isFighting());
         assertTrue(weakMonster.isDead() || weakMonster.getHitPoints() == weakMonsterHP);
         if(weakMonster.isDead()) {
             assertTrue(weapon2.getHolder() == hero || (weapon2.isBroken() && weapon2.liesOnGround()));

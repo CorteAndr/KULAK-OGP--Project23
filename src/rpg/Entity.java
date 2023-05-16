@@ -588,6 +588,7 @@ public abstract class Entity implements ItemHolder {
                 Item armor = items.stream().filter(Armor.class::isInstance).findFirst().get();
                 anchors.put(Anchorpoint.BODY, armor);
                 items.remove(armor);
+                armor.setHolder(this);
             }
             for(Item item: items) {
                 boolean foundAnchor = false;
@@ -615,9 +616,9 @@ public abstract class Entity implements ItemHolder {
      *
      * @post    The item is added to the given anchor
      *          | new.getItemAt(anchor) == item
-     * @effect  If the given item is held by another item holder than said item holder drops the given item
-     *          | if (item.getHolder() != null && item.getHolder() != this)
-     *          | then item.getHolder().drop(item)
+     * @post     If the given item is held by another item holder than said item holder drops the given item
+     *          | if (old.item.getHolder() != null && old.item.getHolder() != this)
+     *          | then !old.item.getHolder().holdsItem(item)
      * @effect  The holder of the given item is set to this entity
      *          | item.setHolder(this)
      * @throws  IllegalArgumentException
@@ -675,6 +676,9 @@ public abstract class Entity implements ItemHolder {
 
     /**
      * Returns all items held by this entity
+     * | for each anchor in getAnchorPoints():
+     * |    result.contains(getItemAt(anchor)
+     * | result.length() == getAnchorPoints().length()
      */
     protected Collection<Item> getItems() {
         return anchors.values();
@@ -692,6 +696,7 @@ public abstract class Entity implements ItemHolder {
      *          | !hasAnchor(anchorPoints)
      */
     @Basic
+    @Raw
     public Item getItemAt(Anchorpoint anchorPoint) throws IllegalArgumentException {
         if(hasAnchor(anchorPoint))
         {
@@ -1024,6 +1029,9 @@ public abstract class Entity implements ItemHolder {
      * @param   anchor
      *          The given to which to add the item
      *
+     * @effect  Allocates the given item at the given anchor
+     *          | setAnchor(anchor, item)
+     *
      * @throws  IllegalArgumentException
      *          The given item is not effective.
      *          | item == null
@@ -1157,8 +1165,6 @@ public abstract class Entity implements ItemHolder {
                 opponent.takeDamage(this.getDamage());
             }
         }
-        stopFighting();
-        opponent.stopFighting();
     }
 
     /**
@@ -1212,6 +1218,8 @@ public abstract class Entity implements ItemHolder {
                 assert false;
             }
         }
+        stopFighting();
+        opponent.stopFighting();
     }
 
     /**

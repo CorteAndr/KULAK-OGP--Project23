@@ -375,7 +375,16 @@ public class Hero extends Entity {
      * @effect  Each item the opponent is either dropped and added to this hero or nothing is still in the opponents
      *          anchors.
      *          | for each item in old.opponent.getItems():
-     *          |   (opponent.drop(item) && this.pickup(item)))
+     *          |   Item item = opponent.getItemAt(anchorOpp);
+     *          |   if(item != null && canPickup(item))
+     *          |   then (
+     *          |   for (Anchorpoint anchorOwn: getAnchorPoints()) {
+     *          |       if(canHaveItemAtAnchor(item, anchorOwn))
+     *          |           then (
+     *          |           opponent.transferItemAtAnchorTo(this, anchorOpp, anchorOwn);
+     *          |           break;
+     *          |           )
+     *          | )
      * @throws  IllegalArgumentException
      *          The given opponent is not dead
      *          | !opponent.isDead()

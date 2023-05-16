@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ArmorTest {
 
     private static Armor armor1;
-    private static Armor armor2;
 
     @BeforeAll
     static void immutableSetup() {
