@@ -21,7 +21,6 @@ import java.util.*;
  *          | canHaveAsEffectiveProtection(getProtection())
  * @invar   Each monster mush have a valid damage
  *          | isValidDamage(getDamage())
- *
  */
 public class Monster extends Entity {
 
@@ -133,7 +132,6 @@ public class Monster extends Entity {
      *          There is no anchor that can hold a certain that hasn't already been used
      *
      */
-    //TODO formal return/throw (unique anchor)
     private static Collection<Anchorpoint> getAnchorsFor(Collection<Item> items) throws IllegalArgumentException {
         if(items == null) throw new IllegalArgumentException("The given items are not effective");
         Collection<Anchorpoint> result = new HashSet<>();
@@ -316,10 +314,14 @@ public class Monster extends Entity {
     }
 
     /**
-     * Collects items from the
+     * Collects items from the given opponent based on their shininess
+     *
      * @param   opponent
      *          The opponent to collect treasures from
+     *
+     * @effect
      */
+    //TODO documentation
     @Override
     @Raw
     protected void collectTreasuresFrom(Entity opponent) throws IllegalArgumentException, InvalidAnchorException, InvalidHolderException {
